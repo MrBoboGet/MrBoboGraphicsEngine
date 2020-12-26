@@ -46,6 +46,7 @@ namespace MBGE
 		void SetUniform4i(std::string UniformName, int x, int y, int z, int w);
 		void SetUniform1i(std::string UniformName, int x);
 		void SetUniform1f(std::string UniformName, float x);
+		void SetUniformMat4f(std::string UniformName, float* RowMajorData);
 		~ShaderProgram();
 	};
 	struct VertexAttributeStruct
@@ -61,6 +62,7 @@ namespace MBGE
 		std::vector<VertexAttributeStruct> Attributes = {};
 	public:
 		void AddAttribute(int SizeOfElement, int NumberOfElements, DataTypes DataType);
+		unsigned int VertexSize();
 		void Bind();
 	};
 	class VertexBuffer
@@ -78,7 +80,7 @@ namespace MBGE
 		void Bind();
 		void Unbind();
 		void DrawTriangles();
-		void FillBuffer(char* Data);
+		void FillBuffer(unsigned int Offset,unsigned int NumberOfBytes,void* Data);
 		void ResizeBuffer(unsigned int NewSize,void* NewData);
 		~VertexBuffer();
 	};
@@ -92,18 +94,29 @@ namespace MBGE
 		void UnBind();
 		~VertexArrayObject();
 	};
-	class Mesh
-	{
-		//alla koordinater är givna i lokala koordinater med ett implicit centrum av (0,0,0)
-
-	};
-	class Model
+	class Vertex
 	{
 	private:
-		//eftersom position och eventuellt vinklar är sådant som vi inte nödvändigtvis vill kunna ändra utan vidare
-		MBMath::MBVector3<float> Position = MBMath::MBVector3<float>(0, 0, 0);
-		std::vector<Mesh> ModelMeshes = {};
-		//en models position är given i world coordinater
+		unsigned char* VertexData = nullptr;
+		unsigned int DataSize = 0;
+		void Swap(Vertex& OtherVertex);
+	public:
+		Vertex() {};
+		MBMath::MBVector3<float> Position;
+		Vertex(Vertex& VertexToCopy);
+		Vertex(Vertex&& VertexToMove) noexcept;
+		Vertex& operator=(Vertex VertexToCopy) noexcept
+		{
+			Position = VertexToCopy.Position;
+			Swap(VertexToCopy);
+		}
+		Vertex& operator=(Vertex&& VertexToMove) noexcept
+		{
+			Position = VertexToMove.Position;
+			Swap(VertexToMove);
+		}
+		Vertex(int NumberOfBytes, void* Data);
+		~Vertex();
 	};
 	class ElementBufferObject
 	{
@@ -111,23 +124,64 @@ namespace MBGE
 		unsigned int ObjectHandle = 0;
 	public:
 		ElementBufferObject(unsigned int NumberOfElements, unsigned int* Data);
-		void DrawTriangles();
+		//void DrawTriangles();
 		void Bind();
 		void UnBind();
+	};
+	class Mesh
+	{
+		//alla koordinater är givna i lokala koordinater med ett implicit centrum av (0,0,0)
+	private:
+		std::vector<unsigned char> VerticesData = {};
+		unsigned int VertexSize = 0;
+		unsigned int VerticesCount = 0;
+		unsigned int DrawVerticesCount = 0;
+		VertexArrayObject VAO;
+		VertexLayout Layout;
+		VertexBuffer Buffer;
+		ElementBufferObject ArrayObject;
+	public:
+		//TODO fixa faktiska copy semantic etc för mesh objektet
+		Mesh(int VerticesToLoadCount, int VertexToLoadSize, void* VertexToLoadData, int ArrayObjectSize, unsigned int* ArrayObjectData);
+		void Rotate(float DegressToRotate, MBMath::MBVector3<float> AxisToRotate);
+		void Draw();
+		unsigned int NumberOfVertices();
+		~Mesh();
+	};
+	class Model
+	{
+	private:
+		//eftersom position och eventuellt vinklar är sådant som vi inte nödvändigtvis vill kunna ändra utan vidare
+		MBMath::MBVector3<float> WorldPosition = MBMath::MBVector3<float>(0, 0, 0);
+		//MBMath::
+		std::vector<Mesh> ModelMeshes = {};
+		//en models position är given i world coordinater
+	public:
+		void Rotate(float DegressToRotate, MBMath::MBVector3<float> AxisToRotate);
+		//void SetRotation(float XRotation, float YRotation, float ZRotation);
+		//MBMath::MBVector3<float> GetRotation();
 	};
 	class Camera
 	{
 	private:
-		MBMath::MBVector3<float> Facing = MBMath::MBVector3<float>(0, 0, 1);
-		MBMath::MBVector3<float> Normal = MBMath::MBVector3<float>(0, 1, 0);
+		MBMath::MBVector3<float> Facing = MBMath::MBVector3<float>(0, 0, -1);
+		MBMath::MBVector3<float> RightAxis = MBMath::MBVector3<float>(1, 0, 0);
+		MBMath::MBVector3<float> UpAxis = MBMath::MBVector3<float>(0, 1, 0);
+		MBMath::MBMatrix4<float> ProjectionMatrix = MBMath::MBMatrix4<float>();
+		MBMath::MBVector3<float> Rotation = MBMath::MBVector3<float>(0, 0, 0);
 		float FieldOfViewY = 45;
 		float FieldOfViewX = 45;
 	public:
+		MBMath::MBVector3<float> GetRotation();
+		void SetRotation(float XaxisRotation, float YaxisRotation, float ZAxisRotation);
+		MBMath::MBVector3<float> GetDirection();
+		MBMath::MBVector3<float> GetRightAxis();
+		MBMath::MBVector3<float> GetUpAxis();
 		bool IsOrtoGraphic = false;
-
-		MBMath::MBVector3<float> Position = MBMath::MBVector3<float>(0, 0, 0);
+		MBMath::MBVector3<float> WorldSpaceCoordinates = MBMath::MBVector3<float>(0, 0, -4);
+		void SetFrustum(float NearPlane, float FarPlane, float XMin, float XMax, float YMin, float YMax);
 		Camera();
-		MBMath::MBMatrix<float> GetTransformationMatrix();
+		MBMath::MBMatrix4<float> GetTransformationMatrix();
 	};
 
 	class Texture
@@ -150,6 +204,8 @@ namespace MBGE
 	public:
 		Camera CameraObject = Camera();
 		MBGraphicsEngine();
+		bool GetKeyUp(unsigned int KeyCode);
+		bool GetKey(unsigned int KeyCode);
 		void AddModel(Model* ModelToAdd);
 		std::string GetResourceFolder();
 		void Update();

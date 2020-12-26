@@ -134,6 +134,12 @@ namespace MBGE
 		glUniform1i(UniformLocation, x);
 		glCheckError();
 	}
+	void ShaderProgram::SetUniformMat4f(std::string UniformName, float* RowMajorData)
+	{
+		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		glUniformMatrix4fv(UniformLocation, 1, GL_TRUE, RowMajorData);
+		glCheckError();
+	}
 	ShaderProgram::~ShaderProgram()
 	{
 		glDeleteProgram(ProgramHandle);
@@ -165,6 +171,10 @@ namespace MBGE
 			glEnableVertexAttribArray(i);
 		}
 		glCheckError();
+	}
+	unsigned int VertexLayout::VertexSize()
+	{
+		return(TotalSize);
 	}
 	//vertexbuffer
 	void VertexBuffer::Bind()
@@ -207,6 +217,11 @@ namespace MBGE
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, BufferHandle);
 		glBufferData(GL_ARRAY_BUFFER, NewSize, Data, CurrentDrawType);
+		glCheckError();
+	}
+	void VertexBuffer::FillBuffer(unsigned int Offset, unsigned int NumberOfBytes, void* Data)
+	{
+		glBufferSubData(GL_ARRAY_BUFFER, Offset, NumberOfBytes, Data);
 		glCheckError();
 	}
 	void VertexBuffer::DrawTriangles()
@@ -258,19 +273,191 @@ namespace MBGE
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glCheckError();
 	}
+	/*
 	void ElementBufferObject::DrawTriangles()
 	{
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glCheckError();
 	}
+	*/
+	//Vertex
+	Vertex::Vertex(int NumberOfBytes, void* Data)
+	{
+		DataSize = NumberOfBytes;
+		VertexData = (unsigned char*)malloc(NumberOfBytes);
+		unsigned char* NewData = (unsigned char*)Data;
+		for (size_t i = 0; i < NumberOfBytes; i++)
+		{
+			VertexData[i] = NewData[i];
+		}
+	}
+	void Vertex::Swap(Vertex& OtherVertex)
+	{
+		unsigned char* TempPointer = this->VertexData;
+		this->VertexData = OtherVertex.VertexData;
+		OtherVertex.VertexData = TempPointer;
+	}
+	Vertex::Vertex(Vertex& OtherVertex)
+	{
+		//skapar ny data likla med den andras storlek
+		DataSize = OtherVertex.DataSize;
+		VertexData = (unsigned char*)malloc(OtherVertex.DataSize);
+		for (size_t i = 0; i < DataSize; i++)
+		{
+			VertexData[i] = OtherVertex.VertexData[i];
+		}
+	}
+	Vertex::Vertex(Vertex&& OtherVertex) noexcept
+	{
+		//skapar ny data likla med den andras storlek
+		DataSize = OtherVertex.DataSize;
+		Swap(OtherVertex);
+	}
+	Vertex::~Vertex()
+	{
+		if (VertexData != nullptr)
+		{
+			free(VertexData);
+		}
+	}
 	//Mesh
+	Mesh::Mesh(int VerticesToLoadCount, int VertexToLoadSize, void* VertexToLoadData, int ArrayObjectSize, unsigned int* ArrayObjectData)
+		: Buffer(VBTypes::DynamicDraw, VerticesToLoadCount* VertexToLoadSize, VertexToLoadData), ArrayObject(ArrayObjectSize, ArrayObjectData)
+	{
+		VAO.Bind();
+		Buffer.Bind();
+		Layout.AddAttribute(4, 3, DataTypes::Float);
+		Layout.AddAttribute(4, 2, DataTypes::Float);
+		Layout.Bind();
+		ArrayObject.Bind();
+		VAO.UnBind();
+		DrawVerticesCount = ArrayObjectSize;
+		VertexSize = VertexToLoadSize;
+		VerticesCount = VerticesToLoadCount;
+		unsigned int TotalDataLength = VerticesToLoadCount * VertexToLoadSize;
+		//VerticesData = (unsigned char*)malloc(TotalDataLength);
+		VerticesData = std::vector<unsigned char>(TotalDataLength, 0);
+		unsigned char* NewData = (unsigned char*)VertexToLoadData;
+		for (size_t i = 0; i < TotalDataLength; i++)
+		{
+			VerticesData[i] = NewData[i];
+		}
+	}
+	void Mesh::Rotate(float DegreesToRotate, MBMath::MBVector3<float> RotationAxis)
+	{
+		unsigned int Offset = 0;
+		for (size_t i = 0; i < VerticesCount; i++)
+		{
+			float* NumberData = (float*)&VerticesData[Offset];
+			MBMath::MBVector3<float> VectorIntermediary(NumberData[0], NumberData[1], NumberData[2]);
+			VectorIntermediary.Rotate(DegreesToRotate, RotationAxis);
+			if (Offset == 0)
+			{
+				//std::cout << VectorIntermediary << std::endl;
+				
+			}
+			NumberData[0] = VectorIntermediary[0];
+			NumberData[1] = VectorIntermediary[1];
+			NumberData[2] = VectorIntermediary[2];
+			Offset += VertexSize;
+		}
+	}
+	void Mesh::Draw()
+	{
+		//TODO omarbeta hela strukture, inser att vi vill nog göra det här på ett väldig annorlunda sätt
+		VAO.Bind();
+		Buffer.Bind();
+		Buffer.FillBuffer(0, VerticesCount * VertexSize, &VerticesData[0]);
+		glDrawElements(GL_TRIANGLES, DrawVerticesCount, GL_UNSIGNED_INT, 0);
+		VAO.UnBind();
+		glCheckError();
+	}
+	unsigned int Mesh::NumberOfVertices()
+	{
+		return(VerticesCount);
+	}
+	Mesh::~Mesh()
+	{
 
+	}
 	//Model
-
+	void Model::Rotate(float DegreesToRotate, MBMath::MBVector3<float> RotationAxis)
+	{
+		//roterar helt enkelt varje mesh motsvarande grader
+		for (size_t i = 0; i < ModelMeshes.size(); i++)
+		{
+			ModelMeshes[i].Rotate(DegreesToRotate, RotationAxis);
+		}
+	}
 	//Camera
 	Camera::Camera()
 	{
 
+	}
+	MBMath::MBVector3<float> Camera::GetDirection() 
+	{ 
+		return(Facing * -1); 
+	}
+	MBMath::MBVector3<float> Camera::GetRightAxis()
+	{
+		return(RightAxis); 
+	}
+	MBMath::MBVector3<float> Camera::GetUpAxis() 
+	{
+		return(UpAxis); 
+	}
+	void Camera::SetFrustum(float NearPlane, float FarPlane, float XMin, float XMax, float YMin, float YMax)
+	{
+		MBMath::MBMatrix4<float> NewProjectionMatrix = MBMath::MBMatrix4<float>();
+		NewProjectionMatrix(0, 0) = 2 * NearPlane / (XMax - XMin);
+		NewProjectionMatrix(1, 1) = 2 * NearPlane / (YMax - YMin);
+		NewProjectionMatrix(0, 2) = (XMax + XMin) / (XMax - XMin);
+		NewProjectionMatrix(1, 2) = (YMax + YMin) / (YMax - YMin);
+		NewProjectionMatrix(2, 2) = -(FarPlane + NearPlane) / (FarPlane - NearPlane);
+		NewProjectionMatrix(2, 3) = -2 * FarPlane * NearPlane / (FarPlane - NearPlane);
+		NewProjectionMatrix(3, 2) = -1;
+		NewProjectionMatrix(3, 3) = 0;
+		std::cout << "New projection matirx:"<<std::endl << NewProjectionMatrix << std::endl;
+		NewProjectionMatrix.PrintWolframMatrix();
+		ProjectionMatrix = NewProjectionMatrix;
+	}
+	MBMath::MBVector3<float> Camera::GetRotation()
+	{
+		return(Rotation);
+	}
+	void Camera::SetRotation(float XAxisRotation, float YAxisRotation, float ZAxisRotation)
+	{
+		//kanske finns ett bättre mindre ass sätt att räklna ut den på
+		//TODO fundera på optimiseringen av SetRotation, borde gå att kunna använda en sluten formel
+		MBMath::MBMatrix<float> RotationMatrix = MBMath::MBVector3<float>::GetRotationMatrix(XAxisRotation,MBMath::MBVector3<float>(1,0,0))* MBMath::MBVector3<float>::GetRotationMatrix(YAxisRotation, MBMath::MBVector3<float>(0, 1, 0))* MBMath::MBVector3<float>::GetRotationMatrix(ZAxisRotation, MBMath::MBVector3<float>(0, 0, 1));
+		//givet en rotation så roterar vi "baskoordinatena" med den
+		Facing = RotationMatrix*(MBMath::MBVector<float>)MBMath::MBVector3<float>(0,0,-1);
+		RightAxis = RotationMatrix*(MBMath::MBVector<float>)MBMath::MBVector3<float>(1, 0, 0);
+		Facing = RotationMatrix*(MBMath::MBVector<float>)MBMath::MBVector3<float>(0, 1, 0);
+		Rotation = MBMath::MBVector3<float>(XAxisRotation, YAxisRotation, ZAxisRotation);
+
+	}
+	MBMath::MBMatrix4<float> Camera::GetTransformationMatrix()
+	{
+		//först tar vi fram projektionsmatrisen för när man ska komma till vår position i worldspace
+		MBMath::MBMatrix4<float> TranslationMatrix = MBMath::MBMatrix4<float>();
+		TranslationMatrix(0, 3) = -WorldSpaceCoordinates[0];
+		TranslationMatrix(1, 3) = -WorldSpaceCoordinates[1];
+		TranslationMatrix(2, 3) = -WorldSpaceCoordinates[2];
+		std::cout << "Translation matrix " <<std::endl<< TranslationMatrix;
+		MBMath::MBMatrix4<float> BaseChangeMatrix = MBMath::MBMatrix4<float>();
+		BaseChangeMatrix(0, 0) = RightAxis[0];
+		BaseChangeMatrix(0, 1) = RightAxis[1];
+		BaseChangeMatrix(0, 2) = RightAxis[2];
+		BaseChangeMatrix(1, 0) = UpAxis[0];
+		BaseChangeMatrix(1, 1) = UpAxis[1];
+		BaseChangeMatrix(1, 2) = UpAxis[2];
+		BaseChangeMatrix(2, 0) = Facing[0];
+		BaseChangeMatrix(2, 1) = Facing[1];
+		BaseChangeMatrix(2, 2) = Facing[2];
+		std::cout << "Base change matrix"<<std::endl << BaseChangeMatrix<<std::endl;
+		MBMath::MBMatrix4<float> TransformationMatrix = ProjectionMatrix * BaseChangeMatrix * TranslationMatrix;
+		return(TransformationMatrix);
 	}
 	//Texture
 	Texture::Texture(std::string FilePath)
@@ -317,6 +504,14 @@ namespace MBGE
 	}
 
 	//MBGraphicsEngine
+	bool MBGraphicsEngine::GetKey(unsigned int KeyCode)
+	{
+		return(glfwGetKey(Window, KeyCode) == GLFW_PRESS);
+	}
+	bool MBGraphicsEngine::GetKeyUp(unsigned int KeyCode)
+	{
+		return(glfwGetKey(Window, KeyCode) == GLFW_RELEASE);
+	}
 	MBGraphicsEngine::MBGraphicsEngine()
 	{
 		//test för att se att vi kan starta ett window
@@ -332,13 +527,18 @@ namespace MBGE
 		}
 		glfwMakeContextCurrent(Window);
 		gl3wInit();
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
 	}
 	void MBGraphicsEngine::Update()
 	{
 		glfwPollEvents();
 		glfwSwapBuffers(Window);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 		glCheckError();
 	}
 

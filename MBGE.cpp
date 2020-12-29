@@ -429,13 +429,22 @@ namespace MBGE
 	{
 		//kanske finns ett bättre mindre ass sätt att räklna ut den på
 		//TODO fundera på optimiseringen av SetRotation, borde gå att kunna använda en sluten formel
-		MBMath::MBMatrix<float> RotationMatrix = MBMath::MBVector3<float>::GetRotationMatrix(XAxisRotation,MBMath::MBVector3<float>(1,0,0))* MBMath::MBVector3<float>::GetRotationMatrix(YAxisRotation, MBMath::MBVector3<float>(0, 1, 0))* MBMath::MBVector3<float>::GetRotationMatrix(ZAxisRotation, MBMath::MBVector3<float>(0, 0, 1));
+		MBMath::MBMatrix<float> BaseMatrix(3);
+		BaseMatrix(2, 2) = -1;
+		MBMath::MBMatrix<float> XRotationMatrix =BaseMatrix* MBMath::MBVector3<float>::GetRotationMatrix(XAxisRotation, MBMath::MBVector3<float>(1, 0, 0)) * BaseMatrix.Transpose();
+		MBMath::MBMatrix<float> YRotationMatrix =BaseMatrix* MBMath::MBVector3<float>::GetRotationMatrix(YAxisRotation, MBMath::MBVector3<float>(0, 1, 0)) * BaseMatrix.Transpose();
+		MBMath::MBMatrix<float> ZRotationMatrix =BaseMatrix* MBMath::MBVector3<float>::GetRotationMatrix(ZAxisRotation, MBMath::MBVector3<float>(0, 0, 1)) * BaseMatrix.Transpose();
+		MBMath::MBMatrix<float> RotationMatrix = XRotationMatrix * YRotationMatrix * ZRotationMatrix;
 		//givet en rotation så roterar vi "baskoordinatena" med den
 		Facing = RotationMatrix*(MBMath::MBVector<float>)MBMath::MBVector3<float>(0,0,-1);
 		RightAxis = RotationMatrix*(MBMath::MBVector<float>)MBMath::MBVector3<float>(1, 0, 0);
-		Facing = RotationMatrix*(MBMath::MBVector<float>)MBMath::MBVector3<float>(0, 1, 0);
+		UpAxis = RotationMatrix*(MBMath::MBVector<float>)MBMath::MBVector3<float>(0, 1, 0);
 		Rotation = MBMath::MBVector3<float>(XAxisRotation, YAxisRotation, ZAxisRotation);
 
+	}
+	void Camera::SetRotation(MBMath::MBVector3<float> NewRotation)
+	{
+		SetRotation(NewRotation[0], NewRotation[1], NewRotation[2]);
 	}
 	MBMath::MBMatrix4<float> Camera::GetTransformationMatrix()
 	{
@@ -444,7 +453,6 @@ namespace MBGE
 		TranslationMatrix(0, 3) = -WorldSpaceCoordinates[0];
 		TranslationMatrix(1, 3) = -WorldSpaceCoordinates[1];
 		TranslationMatrix(2, 3) = -WorldSpaceCoordinates[2];
-		std::cout << "Translation matrix " <<std::endl<< TranslationMatrix;
 		MBMath::MBMatrix4<float> BaseChangeMatrix = MBMath::MBMatrix4<float>();
 		BaseChangeMatrix(0, 0) = RightAxis[0];
 		BaseChangeMatrix(0, 1) = RightAxis[1];
@@ -455,7 +463,6 @@ namespace MBGE
 		BaseChangeMatrix(2, 0) = Facing[0];
 		BaseChangeMatrix(2, 1) = Facing[1];
 		BaseChangeMatrix(2, 2) = Facing[2];
-		std::cout << "Base change matrix"<<std::endl << BaseChangeMatrix<<std::endl;
 		MBMath::MBMatrix4<float> TransformationMatrix = ProjectionMatrix * BaseChangeMatrix * TranslationMatrix;
 		return(TransformationMatrix);
 	}

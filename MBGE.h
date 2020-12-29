@@ -174,6 +174,7 @@ namespace MBGE
 	public:
 		MBMath::MBVector3<float> GetRotation();
 		void SetRotation(float XaxisRotation, float YaxisRotation, float ZAxisRotation);
+		void SetRotation(MBMath::MBVector3<float> NewRotation);
 		MBMath::MBVector3<float> GetDirection();
 		MBMath::MBVector3<float> GetRightAxis();
 		MBMath::MBVector3<float> GetUpAxis();

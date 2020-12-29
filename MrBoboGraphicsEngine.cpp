@@ -9,7 +9,7 @@
 int main()
 {
 	std::cout << std::filesystem::current_path() << std::endl;
-	std::filesystem::current_path(std::filesystem::current_path().parent_path().parent_path().parent_path());
+	//std::filesystem::current_path(std::filesystem::current_path().parent_path().parent_path().parent_path());
 	std::cout << std::filesystem::current_path() << std::endl;
 	MBGE::MBGraphicsEngine GraphicEngine;
 	MBGE::VertexShader TestVertex("./Resources/Shaders/VertexTextureTest");
@@ -83,13 +83,20 @@ int main()
 	TestLayout.Bind();
 	//ny kamera för test grejer
 	MBGE::Camera TestCamera = MBGE::Camera();
-	TestCamera.SetFrustum(1, 1000, -10, 10, -10, 10);
+	TestCamera.SetFrustum(0.1, 1000, -0.1, 0.1, -0.1, 0.1);
 	TestCamera.WorldSpaceCoordinates = MBMath::MBVector3<float>(0, 0,-10);
 	MBMath::MBMatrix4<float> TransormationMatrixTest = TestCamera.GetTransformationMatrix();
 	std::cout << TransormationMatrixTest << std::endl;
 	ProgramTest.SetUniformMat4f("TransformationMatrix",TransormationMatrixTest.GetContinousDataPointer());
+	//frameratge timer
+	clock_t Timer = clock();
 	while (true)
 	{
+		if ((clock() - Timer) / (float)CLOCKS_PER_SEC < 0.0166666)
+		{
+			continue;
+		}
+		Timer = clock();
 		//gör lite grundläggande åka runt grejer
 		///*
 		if (GraphicEngine.GetKey('W'))
@@ -108,10 +115,36 @@ int main()
 		{
 			TestCamera.WorldSpaceCoordinates = TestCamera.WorldSpaceCoordinates + TestCamera.GetRightAxis() * 0.2;
 		}
+		//åker upp/ner
+		if (GraphicEngine.GetKey(' '))
+		{
+			TestCamera.WorldSpaceCoordinates = TestCamera.WorldSpaceCoordinates + TestCamera.GetUpAxis() * 0.2;
+		}
+		if (GraphicEngine.GetKey(340))
+		{
+			TestCamera.WorldSpaceCoordinates = TestCamera.WorldSpaceCoordinates + TestCamera.GetUpAxis() * -0.2;
+		}
+		//piltangenterna
+		if (GraphicEngine.GetKey(262)) //right
+		{
+			TestCamera.SetRotation(TestCamera.GetRotation() + MBMath::MBVector3<float>(0, 1, 0));
+		}
+		if (GraphicEngine.GetKey(263)) //left
+		{
+			TestCamera.SetRotation(TestCamera.GetRotation() + MBMath::MBVector3<float>(0, -1, 0));
+		}
+		if (GraphicEngine.GetKey(265)) //up
+		{
+			TestCamera.SetRotation(TestCamera.GetRotation() + MBMath::MBVector3<float>(-1,0, 0));
+		}
+		if (GraphicEngine.GetKey(264)) //down
+		{
+			TestCamera.SetRotation(TestCamera.GetRotation() + MBMath::MBVector3<float>(1, 0, 0));
+		}
 		//*/
 		TransormationMatrixTest = TestCamera.GetTransformationMatrix();
 		ProgramTest.SetUniformMat4f("TransformationMatrix", TransormationMatrixTest.GetContinousDataPointer());
-		TestMesh.Rotate(0.03, MBMath::MBVector3<float>(1, 1, 1));
+		//TestMesh.Rotate(0.03, MBMath::MBVector3<float>(1, 1, 1));
 		TestMesh.Draw();
 		GraphicEngine.Update();
 	}

@@ -38,10 +38,13 @@ Thumbs.db
 
 # MrBoboGraphicsEngine Specifika #
 ######################
-/.vs
-/glfw_out
-/out
-/LinuxPortable
-/WindowPortable
+/.vs/
+/glfw_out/
+/out/
+/LinuxPortable/
+/WindowPortable/
 /JohanExe.zip
 /LinuxPortable.zip
+/ExternalOuts/
+/Resources/Models/
+/UtifallAtt/

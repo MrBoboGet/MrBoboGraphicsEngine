@@ -11,14 +11,28 @@ project ("MrBoboGraphicsEngine")
 #Variablar
 set(MBL ${CMAKE_SOURCE_DIR}/../MyLibrary/)
 set(EXTLIB ${CMAKE_SOURCE_DIR}/../ExternaLibrarys/)
+set(EXTLIB_OUTDIR ${CMAKE_SOURCE_DIR}/ExternalOuts)
+if(WIN32)
+	set(EXTLIB_OUTDIR ${EXTLIB_OUTDIR}/Windows)
+elseif(UNIX AND NOT APPLE)
+	set(EXTLIB_OUTDIR ${EXTLIB_OUTDIR}/Linux)
+endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	set(EXTLIB_OUTDIR ${EXTLIB_OUTDIR}/Debug)
+else()
+	set(EXTLIB_OUTDIR ${EXTLIB_OUTDIR}/Release)
+endif()
 #---------------------------------------------------
 
 #Saker för att kunna linka med glfw
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-#setter buildet i vårt, antar att det är bättre så vi inte fuckar upp massa andra projekt om vi alltid gör det i samma?
-add_subdirectory(${EXTLIB}/glfw ${CMAKE_SOURCE_DIR}/glfw_out)
+add_subdirectory(${EXTLIB}/glfw ${EXTLIB_OUTDIR}/glfw_out)
+#för att builda med assimp
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE) 
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE) 
+add_subdirectory(${EXTLIB}/assimp-5.0.1 ${EXTLIB_OUTDIR}/assimp_out)
 #---------------------------------------------------
 
 #HeaderFiles
@@ -50,9 +64,11 @@ add_executable (MrBoboGraphicsEngine "MrBoboGraphicsEngine.cpp" "MrBoboGraphicsE
 #Include Directorys
 set (INCLUDE_DIRS
 	${EXTLIB}/gl3w/include
+	${EXTLIB}/assimp-5.0.1/include/assimp
 )
 target_include_directories(MrBoboGraphicsEngine PRIVATE ${MBL} ${CMAKE_SOURCE_DIR} ${EXTLIB} ${INCLUDE_DIRS})
 #---------------------------------------------------
 #Link grejer
 #glfw
 target_link_libraries(MrBoboGraphicsEngine glfw)
+target_link_libraries(MrBoboGraphicsEngine assimp)

@@ -1,0 +1,268 @@
+ .gitignore                                         |      5 [32m+[m[31m-[m
+ CMakeLists.txt                                     |     22 [32m+[m[31m-[m
+ .../Release/assimp_out/assimp-config-version.cmake |     48 [32m+[m
+ .../Linux/Release/assimp_out/assimp-config.cmake   |      1 [32m+[m
+ ExternalOuts/Linux/Release/assimp_out/assimp.pc    |     11 [32m+[m
+ .../Release/assimp_out/assimpTargets-release.cmake |    116 [32m+[m
+ .../Linux/Release/assimp_out/assimpTargets.cmake   |    105 [32m+[m
+ .../Linux/Release/assimp_out/cmake_install.cmake   |     61 [32m+[m
+ .../Release/assimp_out/code/cmake_install.cmake    |    137 [32m+[m
+ .../Linux/Release/assimp_out/code/libassimp.a      |    Bin [31m0[m -> [32m641548072[m bytes
+ .../Release/assimp_out/contrib/cmake_install.cmake |     45 [32m+[m
+ .../assimp_out/contrib/irrXML/cmake_install.cmake  |     43 [32m+[m
+ .../Release/assimp_out/contrib/irrXML/libIrrXML.a  |    Bin [31m0[m -> [32m1111100[m bytes
+ .../assimp_out/contrib/zlib/CTestTestfile.cmake    |      6 [32m+[m
+ .../assimp_out/contrib/zlib/cmake_install.cmake    |     43 [32m+[m
+ .../Release/assimp_out/contrib/zlib/libzlib.so.1   |    Bin [31m0[m -> [32m354584[m bytes
+ .../assimp_out/contrib/zlib/libzlibstatic.a        |    Bin [31m0[m -> [32m519930[m bytes
+ .../Linux/Release/assimp_out/contrib/zlib/zconf.h  |    536 [32m+[m
+ .../Linux/Release/assimp_out/contrib/zlib/zlib.pc  |     13 [32m+[m
+ .../Release/assimp_out/include/assimp/config.h     |   1018 [32m+[m
+ ExternalOuts/Linux/Release/assimp_out/revision.h   |     28 [32m+[m
+ .../Release/assimp_out/tools/assimp_cmd/assimp     |    Bin [31m0[m -> [32m200772864[m bytes
+ .../tools/assimp_cmd/cmake_install.cmake           |     59 [32m+[m
+ .../cmake/glfw3/glfw3Targets-relwithdebinfo.cmake  |     19 [32m+[m
+ .../Export/lib/cmake/glfw3/glfw3Targets.cmake      |     95 [32m+[m
+ .../Linux/Release/glfw_out/cmake_install.cmake     |     78 [32m+[m
+ .../Linux/Release/glfw_out/cmake_uninstall.cmake   |     29 [32m+[m
+ .../Linux/Release/glfw_out/src/cmake_install.cmake |     43 [32m+[m
+ ExternalOuts/Linux/Release/glfw_out/src/glfw3.pc   |     13 [32m+[m
+ .../Linux/Release/glfw_out/src/glfw3Config.cmake   |      3 [32m+[m
+ .../Release/glfw_out/src/glfw3ConfigVersion.cmake  |     51 [32m+[m
+ .../Linux/Release/glfw_out/src/glfw_config.h       |     58 [32m+[m
+ ExternalOuts/Linux/Release/glfw_out/src/libglfw3.a |    Bin [31m0[m -> [32m2664218[m bytes
+ .../Debug/assimp_out/assimp-config-version.cmake   |     48 [32m+[m
+ .../Windows/Debug/assimp_out/assimp-config.cmake   |      1 [32m+[m
+ ExternalOuts/Windows/Debug/assimp_out/assimp.pc    |     11 [32m+[m
+ .../Debug/assimp_out/assimpTargets-debug.cmake     |    114 [32m+[m
+ .../Windows/Debug/assimp_out/assimpTargets.cmake   |    105 [32m+[m
+ .../Windows/Debug/assimp_out/cmake_install.cmake   |     56 [32m+[m
+ .../CMakeFiles/assimp.dir/3DS/3DSConverter.cpp.obj |    Bin [31m0[m -> [32m831210[m bytes
+ .../CMakeFiles/assimp.dir/3DS/3DSExporter.cpp.obj  |    Bin [31m0[m -> [32m1102646[m bytes
+ .../CMakeFiles/assimp.dir/3DS/3DSLoader.cpp.obj    |    Bin [31m0[m -> [32m1646349[m bytes
+ .../CMakeFiles/assimp.dir/3MF/D3MFExporter.cpp.obj |    Bin [31m0[m -> [32m1051768[m bytes
+ .../CMakeFiles/assimp.dir/3MF/D3MFImporter.cpp.obj |    Bin [31m0[m -> [32m1217515[m bytes
+ .../assimp.dir/3MF/D3MFOpcPackage.cpp.obj          |    Bin [31m0[m -> [32m844961[m bytes
+ .../code/CMakeFiles/assimp.dir/AC/ACLoader.cpp.obj |    Bin [31m0[m -> [32m1220534[m bytes
+ .../CMakeFiles/assimp.dir/AMF/AMFImporter.cpp.obj  |    Bin [31m0[m -> [32m1031200[m bytes
+ .../assimp.dir/AMF/AMFImporter_Geometry.cpp.obj    |    Bin [31m0[m -> [32m493362[m bytes
+ .../assimp.dir/AMF/AMFImporter_Material.cpp.obj    |    Bin [31m0[m -> [32m521659[m bytes
+ .../assimp.dir/AMF/AMFImporter_Postprocess.cpp.obj |    Bin [31m0[m -> [32m1196291[m bytes
+ .../CMakeFiles/assimp.dir/ASE/ASELoader.cpp.obj    |    Bin [31m0[m -> [32m1564762[m bytes
+ .../CMakeFiles/assimp.dir/ASE/ASEParser.cpp.obj    |    Bin [31m0[m -> [32m1350351[m bytes
+ .../assimp.dir/Assbin/AssbinExporter.cpp.obj       |    Bin [31m0[m -> [32m697623[m bytes
+ .../assimp.dir/Assbin/AssbinLoader.cpp.obj         |    Bin [31m0[m -> [32m538870[m bytes
+ .../CMakeFiles/assimp.dir/Assjson/cencode.c.obj    |    Bin [31m0[m -> [32m5768[m bytes
+ .../assimp.dir/Assjson/json_exporter.cpp.obj       |    Bin [31m0[m -> [32m721048[m bytes
+ .../assimp.dir/Assjson/mesh_splitter.cpp.obj       |    Bin [31m0[m -> [32m327292[m bytes
+ .../assimp.dir/Assxml/AssxmlExporter.cpp.obj       |    Bin [31m0[m -> [32m607704[m bytes
+ .../CMakeFiles/assimp.dir/B3D/B3DImporter.cpp.obj  |    Bin [31m0[m -> [32m1129964[m bytes
+ .../CMakeFiles/assimp.dir/BVH/BVHLoader.cpp.obj    |    Bin [31m0[m -> [32m1110016[m bytes
+ .../assimp.dir/Blender/BlenderBMesh.cpp.obj        |    Bin [31m0[m -> [32m839054[m bytes
+ .../assimp.dir/Blender/BlenderCustomData.cpp.obj   |    Bin [31m0[m -> [32m659882[m bytes
+ .../assimp.dir/Blender/BlenderDNA.cpp.obj          |    Bin [31m0[m -> [32m1048692[m bytes
+ .../assimp.dir/Blender/BlenderLoader.cpp.obj       |    Bin [31m0[m -> [32m2244176[m bytes
+ .../assimp.dir/Blender/BlenderModifier.cpp.obj     |    Bin [31m0[m -> [32m662601[m bytes
+ .../assimp.dir/Blender/BlenderScene.cpp.obj        |    Bin [31m0[m -> [32m3382010[m bytes
+ .../assimp.dir/Blender/BlenderTessellator.cpp.obj  |    Bin [31m0[m -> [32m523997[m bytes
+ .../assimp.dir/CApi/AssimpCExport.cpp.obj          |    Bin [31m0[m -> [32m449604[m bytes
+ .../assimp.dir/CApi/CInterfaceIOWrapper.cpp.obj    |    Bin [31m0[m -> [32m223107[m bytes
+ .../CMakeFiles/assimp.dir/COB/COBLoader.cpp.obj    |    Bin [31m0[m -> [32m1521662[m bytes
+ .../CMakeFiles/assimp.dir/CSM/CSMLoader.cpp.obj    |    Bin [31m0[m -> [32m781684[m bytes
+ .../assimp.dir/Collada/ColladaExporter.cpp.obj     |    Bin [31m0[m -> [32m1477800[m bytes
+ .../assimp.dir/Collada/ColladaLoader.cpp.obj       |    Bin [31m0[m -> [32m2743734[m bytes
+ .../assimp.dir/Collada/ColladaParser.cpp.obj       |    Bin [31m0[m -> [32m4036218[m bytes
+ .../CMakeFiles/assimp.dir/Common/Assimp.cpp.obj    |    Bin [31m0[m -> [32m1162508[m bytes
+ .../assimp.dir/Common/BaseImporter.cpp.obj         |    Bin [31m0[m -> [32m1397499[m bytes
+ .../assimp.dir/Common/BaseProcess.cpp.obj          |    Bin [31m0[m -> [32m385138[m bytes
+ .../CMakeFiles/assimp.dir/Common/Bitmap.cpp.obj    |    Bin [31m0[m -> [32m51662[m bytes
+ .../assimp.dir/Common/CreateAnimMesh.cpp.obj       |    Bin [31m0[m -> [32m34949[m bytes
+ .../assimp.dir/Common/DefaultIOStream.cpp.obj      |    Bin [31m0[m -> [32m119181[m bytes
+ .../assimp.dir/Common/DefaultIOSystem.cpp.obj      |    Bin [31m0[m -> [32m453503[m bytes
+ .../assimp.dir/Common/DefaultLogger.cpp.obj        |    Bin [31m0[m -> [32m410118[m bytes
+ .../CMakeFiles/assimp.dir/Common/Exporter.cpp.obj  |    Bin [31m0[m -> [32m1337733[m bytes
+ .../CMakeFiles/assimp.dir/Common/Importer.cpp.obj  |    Bin [31m0[m -> [32m1607053[m bytes
+ .../assimp.dir/Common/ImporterRegistry.cpp.obj     |    Bin [31m0[m -> [32m1089568[m bytes
+ .../assimp.dir/Common/PostStepRegistry.cpp.obj     |    Bin [31m0[m -> [32m730773[m bytes
+ .../assimp.dir/Common/RemoveComments.cpp.obj       |    Bin [31m0[m -> [32m42771[m bytes
+ .../assimp.dir/Common/SGSpatialSort.cpp.obj        |    Bin [31m0[m -> [32m218811[m bytes
+ .../assimp.dir/Common/SceneCombiner.cpp.obj        |    Bin [31m0[m -> [32m775352[m bytes
+ .../assimp.dir/Common/ScenePreprocessor.cpp.obj    |    Bin [31m0[m -> [32m208462[m bytes
+ .../assimp.dir/Common/SkeletonMeshBuilder.cpp.obj  |    Bin [31m0[m -> [32m362872[m bytes
+ .../assimp.dir/Common/SpatialSort.cpp.obj          |    Bin [31m0[m -> [32m261513[m bytes
+ .../Common/SplitByBoneCountProcess.cpp.obj         |    Bin [31m0[m -> [32m649023[m bytes
+ .../assimp.dir/Common/StandardShapes.cpp.obj       |    Bin [31m0[m -> [32m161132[m bytes
+ .../assimp.dir/Common/Subdivision.cpp.obj          |    Bin [31m0[m -> [32m639479[m bytes
+ .../assimp.dir/Common/TargetAnimation.cpp.obj      |    Bin [31m0[m -> [32m145341[m bytes
+ .../CMakeFiles/assimp.dir/Common/Version.cpp.obj   |    Bin [31m0[m -> [32m79253[m bytes
+ .../Common/VertexTriangleAdjacency.cpp.obj         |    Bin [31m0[m -> [32m97403[m bytes
+ .../assimp.dir/Common/ZipArchiveIOSystem.cpp.obj   |    Bin [31m0[m -> [32m571138[m bytes
+ .../CMakeFiles/assimp.dir/Common/scene.cpp.obj     |    Bin [31m0[m -> [32m118768[m bytes
+ .../code/CMakeFiles/assimp.dir/Common/simd.cpp.obj |    Bin [31m0[m -> [32m2343[m bytes
+ .../CMakeFiles/assimp.dir/DXF/DXFLoader.cpp.obj    |    Bin [31m0[m -> [32m1427343[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXAnimation.cpp.obj |    Bin [31m0[m -> [32m730733[m bytes
+ .../assimp.dir/FBX/FBXBinaryTokenizer.cpp.obj      |    Bin [31m0[m -> [32m212846[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXConverter.cpp.obj |    Bin [31m0[m -> [32m3947720[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXDeformer.cpp.obj  |    Bin [31m0[m -> [32m695547[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXDocument.cpp.obj  |    Bin [31m0[m -> [32m1185295[m bytes
+ .../assimp.dir/FBX/FBXDocumentUtil.cpp.obj         |    Bin [31m0[m -> [32m397850[m bytes
+ .../assimp.dir/FBX/FBXExportNode.cpp.obj           |    Bin [31m0[m -> [32m620623[m bytes
+ .../assimp.dir/FBX/FBXExportProperty.cpp.obj       |    Bin [31m0[m -> [32m334394[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXExporter.cpp.obj  |    Bin [31m0[m -> [32m3917451[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXImporter.cpp.obj  |    Bin [31m0[m -> [32m685903[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXMaterial.cpp.obj  |    Bin [31m0[m -> [32m977741[m bytes
+ .../assimp.dir/FBX/FBXMeshGeometry.cpp.obj         |    Bin [31m0[m -> [32m1191118[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXModel.cpp.obj     |    Bin [31m0[m -> [32m583056[m bytes
+ .../assimp.dir/FBX/FBXNodeAttribute.cpp.obj        |    Bin [31m0[m -> [32m489248[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXParser.cpp.obj    |    Bin [31m0[m -> [32m1134978[m bytes
+ .../assimp.dir/FBX/FBXProperties.cpp.obj           |    Bin [31m0[m -> [32m873190[m bytes
+ .../CMakeFiles/assimp.dir/FBX/FBXTokenizer.cpp.obj |    Bin [31m0[m -> [32m180712[m bytes
+ .../code/CMakeFiles/assimp.dir/FBX/FBXUtil.cpp.obj |    Bin [31m0[m -> [32m187074[m bytes
+ .../CMakeFiles/assimp.dir/HMP/HMPLoader.cpp.obj    |    Bin [31m0[m -> [32m550976[m bytes
+ .../assimp.dir/Importer/IFC/IFCBoolean.cpp.obj     |    Bin [31m0[m -> [32m1388075[m bytes
+ .../assimp.dir/Importer/IFC/IFCCurve.cpp.obj       |    Bin [31m0[m -> [32m1057470[m bytes
+ .../assimp.dir/Importer/IFC/IFCGeometry.cpp.obj    |    Bin [31m0[m -> [32m1628995[m bytes
+ .../assimp.dir/Importer/IFC/IFCLoader.cpp.obj      |    Bin [31m0[m -> [32m1973938[m bytes
+ .../assimp.dir/Importer/IFC/IFCMaterial.cpp.obj    |    Bin [31m0[m -> [32m895469[m bytes
+ .../assimp.dir/Importer/IFC/IFCOpenings.cpp.obj    |    Bin [31m0[m -> [32m2254982[m bytes
+ .../assimp.dir/Importer/IFC/IFCProfile.cpp.obj     |    Bin [31m0[m -> [32m787857[m bytes
+ .../Importer/IFC/IFCReaderGen1_2x3.cpp.obj         |    Bin [31m0[m -> [32m12023037[m bytes
+ .../Importer/IFC/IFCReaderGen2_2x3.cpp.obj         |    Bin [31m0[m -> [32m1752027[m bytes
+ .../assimp.dir/Importer/IFC/IFCUtil.cpp.obj        |    Bin [31m0[m -> [32m1538639[m bytes
+ .../Importer/STEPParser/STEPFileEncoding.cpp.obj   |    Bin [31m0[m -> [32m199733[m bytes
+ .../Importer/STEPParser/STEPFileReader.cpp.obj     |    Bin [31m0[m -> [32m1366932[m bytes
+ .../Importer/StepFile/StepFileGen1.cpp.obj         |    Bin [31m0[m -> [32m20106921[m bytes
+ .../Importer/StepFile/StepFileGen2.cpp.obj         |    Bin [31m0[m -> [32m4099481[m bytes
+ .../Importer/StepFile/StepFileGen3.cpp.obj         |    Bin [31m0[m -> [32m6283039[m bytes
+ .../Importer/StepFile/StepFileImporter.cpp.obj     |    Bin [31m0[m -> [32m672929[m bytes
+ .../CMakeFiles/assimp.dir/Irr/IRRLoader.cpp.obj    |    Bin [31m0[m -> [32m1375827[m bytes
+ .../assimp.dir/Irr/IRRMeshLoader.cpp.obj           |    Bin [31m0[m -> [32m870648[m bytes
+ .../CMakeFiles/assimp.dir/Irr/IRRShared.cpp.obj    |    Bin [31m0[m -> [32m505670[m bytes
+ .../CMakeFiles/assimp.dir/LWO/LWOAnimation.cpp.obj |    Bin [31m0[m -> [32m423854[m bytes
+ .../CMakeFiles/assimp.dir/LWO/LWOBLoader.cpp.obj   |    Bin [31m0[m -> [32m705641[m bytes
+ .../CMakeFiles/assimp.dir/LWO/LWOLoader.cpp.obj    |    Bin [31m0[m -> [32m2016042[m bytes
+ .../CMakeFiles/assimp.dir/LWO/LWOMaterial.cpp.obj  |    Bin [31m0[m -> [32m909917[m bytes
+ .../CMakeFiles/assimp.dir/LWS/LWSLoader.cpp.obj    |    Bin [31m0[m -> [32m1391695[m bytes
+ .../CMakeFiles/assimp.dir/MD2/MD2Loader.cpp.obj    |    Bin [31m0[m -> [32m569934[m bytes
+ .../CMakeFiles/assimp.dir/MD3/MD3Loader.cpp.obj    |    Bin [31m0[m -> [32m1196837[m bytes
+ .../CMakeFiles/assimp.dir/MD5/MD5Loader.cpp.obj    |    Bin [31m0[m -> [32m1047474[m bytes
+ .../CMakeFiles/assimp.dir/MD5/MD5Parser.cpp.obj    |    Bin [31m0[m -> [32m1083754[m bytes
+ .../CMakeFiles/assimp.dir/MDC/MDCLoader.cpp.obj    |    Bin [31m0[m -> [32m611870[m bytes
+ .../CMakeFiles/assimp.dir/MDL/MDLLoader.cpp.obj    |    Bin [31m0[m -> [32m1302863[m bytes
+ .../assimp.dir/MDL/MDLMaterialLoader.cpp.obj       |    Bin [31m0[m -> [32m531428[m bytes
+ .../CMakeFiles/assimp.dir/MMD/MMDImporter.cpp.obj  |    Bin [31m0[m -> [32m807519[m bytes
+ .../CMakeFiles/assimp.dir/MMD/MMDPmxParser.cpp.obj |    Bin [31m0[m -> [32m533425[m bytes
+ .../CMakeFiles/assimp.dir/MS3D/MS3DLoader.cpp.obj  |    Bin [31m0[m -> [32m1131309[m bytes
+ .../assimp.dir/Material/MaterialSystem.cpp.obj     |    Bin [31m0[m -> [32m336100[m bytes
+ .../CMakeFiles/assimp.dir/NDO/NDOLoader.cpp.obj    |    Bin [31m0[m -> [32m908053[m bytes
+ .../CMakeFiles/assimp.dir/NFF/NFFLoader.cpp.obj    |    Bin [31m0[m -> [32m1321628[m bytes
+ .../CMakeFiles/assimp.dir/OFF/OFFLoader.cpp.obj    |    Bin [31m0[m -> [32m620231[m bytes
+ .../CMakeFiles/assimp.dir/Obj/ObjExporter.cpp.obj  |    Bin [31m0[m -> [32m1053985[m bytes
+ .../assimp.dir/Obj/ObjFileImporter.cpp.obj         |    Bin [31m0[m -> [32m783870[m bytes
+ .../assimp.dir/Obj/ObjFileMtlImporter.cpp.obj      |    Bin [31m0[m -> [32m662703[m bytes
+ .../assimp.dir/Obj/ObjFileParser.cpp.obj           |    Bin [31m0[m -> [32m1337508[m bytes
+ .../assimp.dir/Ogre/OgreBinarySerializer.cpp.obj   |    Bin [31m0[m -> [32m1383651[m bytes
+ .../assimp.dir/Ogre/OgreImporter.cpp.obj           |    Bin [31m0[m -> [32m635182[m bytes
+ .../assimp.dir/Ogre/OgreMaterial.cpp.obj           |    Bin [31m0[m -> [32m1059954[m bytes
+ .../CMakeFiles/assimp.dir/Ogre/OgreStructs.cpp.obj |    Bin [31m0[m -> [32m1304194[m bytes
+ .../assimp.dir/Ogre/OgreXmlSerializer.cpp.obj      |    Bin [31m0[m -> [32m1373600[m bytes
+ .../assimp.dir/OpenGEX/OpenGEXExporter.cpp.obj     |    Bin [31m0[m -> [32m27916[m bytes
+ .../assimp.dir/OpenGEX/OpenGEXImporter.cpp.obj     |    Bin [31m0[m -> [32m1446185[m bytes
+ .../CMakeFiles/assimp.dir/Ply/PlyExporter.cpp.obj  |    Bin [31m0[m -> [32m605388[m bytes
+ .../CMakeFiles/assimp.dir/Ply/PlyLoader.cpp.obj    |    Bin [31m0[m -> [32m709548[m bytes
+ .../CMakeFiles/assimp.dir/Ply/PlyParser.cpp.obj    |    Bin [31m0[m -> [32m985516[m bytes
+ .../PostProcessing/CalcTangentsProcess.cpp.obj     |    Bin [31m0[m -> [32m477582[m bytes
+ .../PostProcessing/ComputeUVMappingProcess.cpp.obj |    Bin [31m0[m -> [32m396067[m bytes
+ .../PostProcessing/ConvertToLHProcess.cpp.obj      |    Bin [31m0[m -> [32m245577[m bytes
+ .../PostProcessing/DeboneProcess.cpp.obj           |    Bin [31m0[m -> [32m638572[m bytes
+ .../PostProcessing/DropFaceNormalsProcess.cpp.obj  |    Bin [31m0[m -> [32m263687[m bytes
+ .../PostProcessing/EmbedTexturesProcess.cpp.obj    |    Bin [31m0[m -> [32m509469[m bytes
+ .../PostProcessing/FindDegenerates.cpp.obj         |    Bin [31m0[m -> [32m570378[m bytes
+ .../PostProcessing/FindInstancesProcess.cpp.obj    |    Bin [31m0[m -> [32m337849[m bytes
+ .../PostProcessing/FindInvalidDataProcess.cpp.obj  |    Bin [31m0[m -> [32m483495[m bytes
+ .../PostProcessing/FixNormalsStep.cpp.obj          |    Bin [31m0[m -> [32m293379[m bytes
+ .../PostProcessing/GenBoundingBoxesProcess.cpp.obj |    Bin [31m0[m -> [32m125614[m bytes
+ .../PostProcessing/GenFaceNormalsProcess.cpp.obj   |    Bin [31m0[m -> [32m267494[m bytes
+ .../PostProcessing/GenVertexNormalsProcess.cpp.obj |    Bin [31m0[m -> [32m418227[m bytes
+ .../PostProcessing/ImproveCacheLocality.cpp.obj    |    Bin [31m0[m -> [32m413644[m bytes
+ .../PostProcessing/JoinVerticesProcess.cpp.obj     |    Bin [31m0[m -> [32m649127[m bytes
+ .../PostProcessing/LimitBoneWeightsProcess.cpp.obj |    Bin [31m0[m -> [32m621358[m bytes
+ .../PostProcessing/MakeVerboseFormat.cpp.obj       |    Bin [31m0[m -> [32m283056[m bytes
+ .../PostProcessing/OptimizeGraph.cpp.obj           |    Bin [31m0[m -> [32m641989[m bytes
+ .../PostProcessing/OptimizeMeshes.cpp.obj          |    Bin [31m0[m -> [32m467788[m bytes
+ .../PostProcessing/PretransformVertices.cpp.obj    |    Bin [31m0[m -> [32m581989[m bytes
+ .../PostProcessing/ProcessHelper.cpp.obj           |    Bin [31m0[m -> [32m373475[m bytes
+ .../RemoveRedundantMaterials.cpp.obj               |    Bin [31m0[m -> [32m468136[m bytes
+ .../PostProcessing/RemoveVCProcess.cpp.obj         |    Bin [31m0[m -> [32m241744[m bytes
+ .../assimp.dir/PostProcessing/ScaleProcess.cpp.obj |    Bin [31m0[m -> [32m329355[m bytes
+ .../PostProcessing/SortByPTypeProcess.cpp.obj      |    Bin [31m0[m -> [32m492738[m bytes
+ .../PostProcessing/SplitLargeMeshes.cpp.obj        |    Bin [31m0[m -> [32m500140[m bytes
+ .../PostProcessing/TextureTransform.cpp.obj        |    Bin [31m0[m -> [32m681898[m bytes
+ .../PostProcessing/TriangulateProcess.cpp.obj      |    Bin [31m0[m -> [32m313929[m bytes
+ .../PostProcessing/ValidateDataStructure.cpp.obj   |    Bin [31m0[m -> [32m736830[m bytes
+ .../assimp.dir/Q3BSP/Q3BSPFileImporter.cpp.obj     |    Bin [31m0[m -> [32m1018310[m bytes
+ .../assimp.dir/Q3BSP/Q3BSPFileParser.cpp.obj       |    Bin [31m0[m -> [32m632190[m bytes
+ .../CMakeFiles/assimp.dir/Q3D/Q3DLoader.cpp.obj    |    Bin [31m0[m -> [32m954012[m bytes
+ .../CMakeFiles/assimp.dir/Raw/RawLoader.cpp.obj    |    Bin [31m0[m -> [32m905730[m bytes
+ .../CMakeFiles/assimp.dir/SIB/SIBImporter.cpp.obj  |    Bin [31m0[m -> [32m1189102[m bytes
+ .../CMakeFiles/assimp.dir/SMD/SMDLoader.cpp.obj    |    Bin [31m0[m -> [32m1404951[m bytes
+ .../CMakeFiles/assimp.dir/STL/STLExporter.cpp.obj  |    Bin [31m0[m -> [32m589581[m bytes
+ .../CMakeFiles/assimp.dir/STL/STLLoader.cpp.obj    |    Bin [31m0[m -> [32m777623[m bytes
+ .../assimp.dir/Step/StepExporter.cpp.obj           |    Bin [31m0[m -> [32m1116171[m bytes
+ .../assimp.dir/Terragen/TerragenLoader.cpp.obj     |    Bin [31m0[m -> [32m559622[m bytes
+ .../assimp.dir/Unreal/UnrealLoader.cpp.obj         |    Bin [31m0[m -> [32m999620[m bytes
+ .../CMakeFiles/assimp.dir/X/XFileExporter.cpp.obj  |    Bin [31m0[m -> [32m884052[m bytes
+ .../CMakeFiles/assimp.dir/X/XFileImporter.cpp.obj  |    Bin [31m0[m -> [32m942866[m bytes
+ .../CMakeFiles/assimp.dir/X/XFileParser.cpp.obj    |    Bin [31m0[m -> [32m1110726[m bytes
+ .../CMakeFiles/assimp.dir/X3D/FIReader.cpp.obj     |    Bin [31m0[m -> [32m2386162[m bytes
+ .../CMakeFiles/assimp.dir/X3D/X3DExporter.cpp.obj  |    Bin [31m0[m -> [32m1142206[m bytes
+ .../CMakeFiles/assimp.dir/X3D/X3DImporter.cpp.obj  |    Bin [31m0[m -> [32m2141804[m bytes
+ .../assimp.dir/X3D/X3DImporter_Geometry2D.cpp.obj  |    Bin [31m0[m -> [32m608856[m bytes
+ .../assimp.dir/X3D/X3DImporter_Geometry3D.cpp.obj  |    Bin [31m0[m -> [32m915878[m bytes
+ .../assimp.dir/X3D/X3DImporter_Group.cpp.obj       |    Bin [31m0[m -> [32m443992[m bytes
+ .../assimp.dir/X3D/X3DImporter_Light.cpp.obj       |    Bin [31m0[m -> [32m500502[m bytes
+ .../assimp.dir/X3D/X3DImporter_Metadata.cpp.obj    |    Bin [31m0[m -> [32m642699[m bytes
+ .../assimp.dir/X3D/X3DImporter_Networking.cpp.obj  |    Bin [31m0[m -> [32m560617[m bytes
+ .../assimp.dir/X3D/X3DImporter_Postprocess.cpp.obj |    Bin [31m0[m -> [32m943825[m bytes
+ .../assimp.dir/X3D/X3DImporter_Rendering.cpp.obj   |    Bin [31m0[m -> [32m822124[m bytes
+ .../assimp.dir/X3D/X3DImporter_Shape.cpp.obj       |    Bin [31m0[m -> [32m466986[m bytes
+ .../assimp.dir/X3D/X3DImporter_Texturing.cpp.obj   |    Bin [31m0[m -> [32m502411[m bytes
+ .../assimp.dir/X3D/X3DVocabulary.cpp.obj           |    Bin [31m0[m -> [32m205904[m bytes
+ .../CMakeFiles/assimp.dir/XGL/XGLLoader.cpp.obj    |    Bin [31m0[m -> [32m1567865[m bytes
+ .../contrib/Open3DGC/o3dgcArithmeticCodec.cpp.obj  |    Bin [31m0[m -> [32m48041[m bytes
+ .../Open3DGC/o3dgcDynamicVectorDecoder.cpp.obj     |    Bin [31m0[m -> [32m33536[m bytes
+ .../Open3DGC/o3dgcDynamicVectorEncoder.cpp.obj     |    Bin [31m0[m -> [32m44910[m bytes
+ .../__/contrib/Open3DGC/o3dgcTools.cpp.obj         |    Bin [31m0[m -> [32m1808[m bytes
+ .../__/contrib/Open3DGC/o3dgcTriangleFans.cpp.obj  |    Bin [31m0[m -> [32m58655[m bytes
+ .../assimp.dir/__/contrib/clipper/clipper.cpp.obj  |    Bin [31m0[m -> [32m850679[m bytes
+ .../__/contrib/openddlparser/code/DDLNode.cpp.obj  |    Bin [31m0[m -> [32m190628[m bytes
+ .../openddlparser/code/OpenDDLCommon.cpp.obj       |    Bin [31m0[m -> [32m44299[m bytes
+ .../openddlparser/code/OpenDDLExport.cpp.obj       |    Bin [31m0[m -> [32m229847[m bytes
+ .../openddlparser/code/OpenDDLParser.cpp.obj       |    Bin [31m0[m -> [32m455481[m bytes
+ .../openddlparser/code/OpenDDLStream.cpp.obj       |    Bin [31m0[m -> [32m107379[m bytes
+ .../__/contrib/openddlparser/code/Value.cpp.obj    |    Bin [31m0[m -> [32m111781[m bytes
+ .../contrib/poly2tri/poly2tri/common/shapes.cc.obj |    Bin [31m0[m -> [32m77134[m bytes
+ .../poly2tri/poly2tri/sweep/advancing_front.cc.obj |    Bin [31m0[m -> [32m29913[m bytes
+ .../__/contrib/poly2tri/poly2tri/sweep/cdt.cc.obj  |    Bin [31m0[m -> [32m112265[m bytes
+ .../contrib/poly2tri/poly2tri/sweep/sweep.cc.obj   |    Bin [31m0[m -> [32m140066[m bytes
+ .../poly2tri/poly2tri/sweep/sweep_context.cc.obj   |    Bin [31m0[m -> [32m305755[m bytes
+ .../assimp.dir/__/contrib/unzip/ioapi.c.obj        |    Bin [31m0[m -> [32m8465[m bytes
+ .../assimp.dir/__/contrib/unzip/unzip.c.obj        |    Bin [31m0[m -> [32m46409[m bytes
+ .../assimp.dir/__/contrib/zip/src/zip.c.obj        |    Bin [31m0[m -> [32m265126[m bytes
+ .../CMakeFiles/assimp.dir/glTF/glTFCommon.cpp.obj  |    Bin [31m0[m -> [32m260629[m bytes
+ .../assimp.dir/glTF/glTFExporter.cpp.obj           |    Bin [31m0[m -> [32m4159659[m bytes
+ .../assimp.dir/glTF/glTFImporter.cpp.obj           |    Bin [31m0[m -> [32m3782250[m bytes
+ .../assimp.dir/glTF2/glTF2Exporter.cpp.obj         |    Bin [31m0[m -> [32m3540814[m bytes
+ .../assimp.dir/glTF2/glTF2Importer.cpp.obj         |    Bin [31m0[m -> [32m4017850[m bytes
+ .../code/CMakeFiles/assimp.dir/res/assimp.i        |   9488 [32m+[m
+ .../code/CMakeFiles/assimp.dir/res/assimp.rc.res   |    Bin [31m0[m -> [32m928[m bytes
+ .../Debug/assimp_out/code/assimp-vc142-mtd.lib     |    Bin [31m0[m -> [32m237758752[m bytes
+ .../Debug/assimp_out/code/assimp-vc142-mtd.pdb     |    Bin [31m0[m -> [32m29380608[m bytes
+ .../Debug/assimp_out/code/cmake_install.cmake      |    144 [32m+[m
+ .../Debug/assimp_out/contrib/cmake_install.cmake   |     40 [32m+[m
+ .../irrXML/CMakeFiles/IrrXML.dir/IrrXML.pdb        |    Bin [31m0[m -> [32m135168[m bytes
+ .../irrXML/CMakeFiles/IrrXML.dir/irrXML.cpp.obj    |    Bin [31m0[m -> [32m437850[m bytes
+ .../Debug/assimp_out/contrib/irrXML/IrrXMLd.lib    |    Bin [31m0[m -> [32m474640[m bytes
+ .../assimp_out/contrib/irrXML/cmake_install.cmake  |     38 [32m+[m
+ .../contrib/zlib/CMakeFiles/zlib.dir/adler32.obj   |    Bin [31m0[m -> [32m7521[m bytes
+ .../contrib/zlib/CMake

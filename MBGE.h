@@ -2,8 +2,11 @@
 #include <MBMatrix.h>
 #include <string>
 #include <unordered_map>
+#include <time.h>
+#include <thread>
 #define MBGE_BASE_TYPE double 
 class GLFWwindow;
+#define MBGE_BONEPERVERTEX 5
 namespace MBGE
 {
 	//predekleration av klasser som pointers
@@ -63,6 +66,7 @@ namespace MBGE
 		void SetUniformMat4f(std::string UniformName, float* RowMajorData);
 		void SetUniformVec3(std::string Uniformname, float x, float y, float z);
 		void SetUniformVec4(std::string Uniformname, float x, float y, float z,float w);
+		void PrintActiveAttributesAndUniforms();
 		~ShaderProgram();
 	};
 	struct VertexAttributeStruct
@@ -170,6 +174,23 @@ namespace MBGE
 		float y = 0;
 		float z = 0;
 	};
+	struct BoneWeight
+	{
+		unsigned int VertexIndex = -1;
+		float Weight = 0;
+	};
+	class Bone
+	{
+	private:
+
+	public:
+		std::string BoneID = "";
+		int BoneIndex = -1;
+		MBMath::MBMatrix4<float> OffsetMatrix = MBMath::MBMatrix4<float>();
+		std::vector<BoneWeight> Weights = {};
+		Bone(void* AssimpBoneData);
+		Bone() { };
+	};
 	class Mesh
 	{
 		//alla koordinater är givna i lokala koordinater med ett implicit centrum av (0,0,0)
@@ -207,6 +228,7 @@ namespace MBGE
 		std::vector<unsigned int> MeshIndexes = {};
 		MBMath::MBMatrix4<float> LocalTransformation = MBMath::MBMatrix4<float>();
 		Model* AssociatedModel = nullptr;
+		std::string NodeID = "";
 		void Swap(Node& OtherNode);
 	public:
 		Node& operator=(Node OtherNode)
@@ -216,7 +238,10 @@ namespace MBGE
 		}
 		Node() {};
 		Node(void* NodeData, Node* ParentNode,Model* ModelToBelong);
+		MBMath::MBMatrix4<float> GetLocalTransformation() { return(LocalTransformation); };
 		void Draw(MBMath::MBMatrix4<float> ParentrTransformation);
+		void DrawAnimation();
+		void UpdateBones(MBMath::MBMatrix4<float> ParentTransformation);
 		//kommer med detta behöva en egentlig copy constructor och etc
 		~Node();
 	};
@@ -237,6 +262,48 @@ namespace MBGE
 		Material(void* MaterialData,std::string PathToModel,std::vector<MaterialAttribute> NewMaterialAttributes,MBGraphicsEngine* AttachedEngine);
 		void SetUniforms();
 	};
+	struct NodeAnimationRotationKey
+	{
+		float KeyTime = 0;
+		MBMath::Quaternion<float> Rotation;
+	};
+	struct NodeAnimationPositionKey
+	{
+		float KeyTime = 0;
+		MBMath::MBVector3<float> Position;
+	};
+	struct NodeAnimationScalingKey
+	{
+		float KeyTime = 0;
+		MBMath::MBVector3<float> Scaling;
+	};
+	class NodeAnimation
+	{
+		double TickDuration = 0;
+		double TicksPerSec = 0;
+		std::vector<NodeAnimationScalingKey> ScalingKeys = {};
+		std::vector<NodeAnimationRotationKey> RotationKeys = {};
+		std::vector<NodeAnimationPositionKey> TranslationKeys = {};
+		MBMath::MBMatrix4<float> GetInterpolatedScaling(float TimeInSec);
+		MBMath::MBMatrix4<float> GetInterpolatedRotation(float TimeInSec);
+		MBMath::MBMatrix4<float> GetInterpolatedTranslation(float TimeInSec);
+	public:
+		NodeAnimation(void* AssimpData, double AnimationDuration, double TicksPerSec);
+		MBMath::MBMatrix4<float> GetTransformation(float TimeInSec);
+		NodeAnimation() {};
+	};
+	class ModelAnimation
+	{
+	private:
+		double TickDuration = 0;
+		double TicksPerSec = 0;
+		std::unordered_map<std::string,NodeAnimation> NodeAnimations = {};
+	public:
+		bool IsInAnimation(std::string NodeID) { return(NodeAnimations.find(NodeID) != NodeAnimations.end()); };
+		MBMath::MBMatrix4<float> GetNodeTransformation(float TimeInSec, std::string NodeId);
+		double GetDurationInSec() { return(TickDuration / TicksPerSec); };
+		ModelAnimation(void* AssimpData);
+	};
 	class Model
 	{
 	private:
@@ -247,10 +314,21 @@ namespace MBGE
 		std::vector<Material> ModelMaterials = {};
 		ShaderProgram* ModelShaderProgram = nullptr;
 		Node TopNode;
-		std::vector<MaterialAttribute> ModelShaderAttributes = {MaterialAttribute::DiffuseTexture,MaterialAttribute::NormalTexture,MaterialAttribute::SpecularTexture};
+		std::vector<MaterialAttribute> ModelShaderAttributes = { MaterialAttribute::DiffuseTexture,MaterialAttribute::NormalTexture,MaterialAttribute::SpecularTexture };
 		//eftersom vi inte vill ha assimp i headefilen så passas en voidpointer utifall jag byter backend
 		void ProcessNode(void* Node, void* Scene);
+		bool AnimationIsPlaying = false;
+		double AnimationTime = 0;
+		std::vector<ModelAnimation> Animations = {};
 	public:
+		int NumberOfNodes = 0;
+		std::vector<std::string> NodeNames = {};
+		ModelAnimation* GetCurrentAnimation();
+		bool IsPlayingAnimation() { return(AnimationIsPlaying); };
+		double GetAnimationTimeInSec(){return(AnimationTime);};
+		MBMath::MBMatrix4<float> InverseGlobalMatrix = MBMath::MBMatrix4<float>();
+		std::vector<MBMath::MBMatrix4<float>> BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(100, MBMath::MBMatrix4<float>());
+		std::unordered_map<std::string, Bone> BoneMap = {};
 		std::string ModelShader = "";
 		MBGraphicsEngine* AssociatedEngine = nullptr;
 		void Rotate(float DegressToRotate, MBMath::MBVector3<float> AxisToRotate);
@@ -261,6 +339,18 @@ namespace MBGE
 		Model(std::string ModelPath,std::vector<MaterialAttribute> MaterialAttributes,MBGraphicsEngine* AttachedEngine);
 		//void SetRotation(float XRotation, float YRotation, float ZRotation);
 		//MBMath::MBVector3<float> GetRotation();
+	};
+	class FrameBuffer
+	{
+	private:
+		unsigned int FrameBufferHandle = -1;
+		unsigned int ColorTextureHandle = -1;
+		unsigned int DepthStencilTextureHandle = -1;
+	public:
+		FrameBuffer(int Width,int Heigh);
+		void Bind();
+		void BindColorBuffer(int Index);
+		void BindDepthBuffer(int Index);
 	};
 	class Camera
 	{
@@ -315,7 +405,6 @@ namespace MBGE
 		void UnBind(int TextureLocation);
 		~Texture();
 	};
-
 	class MBGraphicsEngine
 	{
 	private:
@@ -326,7 +415,19 @@ namespace MBGE
 		std::unordered_map<std::string, ShaderProgram*> LoadedShaders = {};
 		std::unordered_map<std::string, Texture*> LoadedTextures = {};
 		std::vector<LightSource*> LightSources = {};
+		VertexArrayObject* PBS_VertexArray;
+		VertexLayout* PBS_Layout;
+		VertexBuffer* PBS_VertexBuffer;
+		ElementBufferObject* PBS_ElementBuffer;
+		FrameBuffer* PostProcessingFrameBuffer;
+		void DrawPostProcessing();
+		clock_t DeltaTimeTimer = clock();
+		double DeltaTime = 0;
+		//std::thread PollEventsThread;
 	public:
+		bool FrameByFrame = false;
+		double GetDeltaTimeInSec() { return(DeltaTime); };
+		std::string PostProcessingShaderID = "Default_PPS";
 		Camera CameraObject = Camera(this);
 		void UpdateUniforms();
 		ShaderProgram* GetCurrentShader();
@@ -340,6 +441,7 @@ namespace MBGE
 		ShaderProgram* LoadShader(std::string ShaderID,std::string VertexShaderPath,std::string GeometryShaderPath,std::string FragmentShaderPath);
 		ShaderProgram* GetShader(std::string ShaderID);
 		Texture* GetTexture(std::string TextureFilePath);
+		void PollEvents();
 		std::string GetResourceFolder();
 		void Update();
 		void CreateWindow();

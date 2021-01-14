@@ -166,44 +166,111 @@ namespace MBGE
 	void ShaderProgram::SetUniform4f(std::string UniformName, float x, float y, float z, float w)
 	{
 		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		if (UniformLocation == -1)
+		{
+			//invalid locatiopn printa
+			std::cout << "Invalid uniform: " << UniformName<<std::endl;
+		}
 		glUniform4f(UniformLocation, x, y, z, w);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniform4i(std::string UniformName, int x, int y, int z, int w)
 	{
 		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		if (UniformLocation == -1)
+		{
+			//invalid locatiopn printa
+			std::cout << "Invalid uniform: " << UniformName << std::endl;
+		}
 		glUniform4f(UniformLocation, x, y, z, w);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniform1i(std::string UniformName, int x)
 	{
 		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		if (UniformLocation == -1)
+		{
+			//invalid locatiopn printa
+			std::cout << "Invalid uniform: " << UniformName << std::endl;
+		}
 		glUniform1i(UniformLocation, x);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniform1f(std::string UniformName, float x)
 	{
 		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		if (UniformLocation == -1)
+		{
+			//invalid locatiopn printa
+			std::cout << "Invalid uniform: " << UniformName << std::endl;
+		}
 		glUniform1f(UniformLocation, x);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniformMat4f(std::string UniformName, float* RowMajorData)
 	{
 		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		if (UniformLocation == -1)
+		{
+			//invalid locatiopn printa
+			std::cout << "Invalid uniform: " << UniformName << std::endl;
+		}
 		glUniformMatrix4fv(UniformLocation, 1, GL_TRUE, RowMajorData);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniformVec3(std::string UniformName, float x, float y, float z)
 	{
 		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		if (UniformLocation == -1)
+		{
+			//invalid locatiopn printa
+			std::cout << "Invalid uniform: " << UniformName << std::endl;
+		}
 		glUniform3f(UniformLocation, x, y, z);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniformVec4(std::string UniformName, float x, float y, float z,float w)
 	{
 		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		if (UniformLocation == -1)
+		{
+			//invalid locatiopn printa
+			std::cout << "Invalid uniform: " << UniformName << std::endl;
+		}
 		glUniform4f(UniformLocation, x, y, z,w);
 		glCheckError();
+	}
+	void ShaderProgram::PrintActiveAttributesAndUniforms()
+	{
+		GLint i;
+		GLint count;
+
+		GLint size; // size of the variable
+		GLenum type; // type of the variable (float, vec3 or mat4, etc)
+
+		const GLsizei bufSize = 32; // maximum name length
+		GLchar name[bufSize]; // variable name in GLSL
+		GLsizei length; // name length
+
+		glGetProgramiv(ProgramHandle, GL_ACTIVE_ATTRIBUTES, &count);
+		printf("Active Attributes: %d\n", count);
+
+		for (i = 0; i < count; i++)
+		{
+			glGetActiveAttrib(ProgramHandle, (GLuint)i, bufSize, &length, &size, &type, name);
+
+			printf("Attribute #%d Type: %u Name: %s\n", i, type, name);
+		}
+
+		glGetProgramiv(ProgramHandle, GL_ACTIVE_UNIFORMS, &count);
+		printf("Active Uniforms: %d\n", count);
+
+		for (i = 0; i < count; i++)
+		{
+			glGetActiveUniform(ProgramHandle, (GLuint)i, bufSize, &length, &size, &type, name);
+
+			printf("Uniform #%d Type: %u Name: %s\n", i, type, name);
+		}
 	}
 	ShaderProgram::~ShaderProgram()
 	{
@@ -231,7 +298,14 @@ namespace MBGE
 			{
 				ElementType = GL_INT;
 			}
-			glVertexAttribPointer(i, CurrentAttrib.NumberOfElements, GL_FLOAT, GL_FALSE, TotalSize, (void*)CurrentOffset);
+			if (ElementType == GL_FLOAT)
+			{
+				glVertexAttribPointer(i, CurrentAttrib.NumberOfElements, GL_FLOAT, GL_FALSE, TotalSize, (void*)CurrentOffset);
+			}
+			else if(ElementType == GL_INT)
+			{
+				glVertexAttribIPointer(i, CurrentAttrib.NumberOfElements, GL_INT, TotalSize, (void*)CurrentOffset);
+			}
 			CurrentOffset += CurrentAttrib.NumberOfElements * CurrentAttrib.SizeOfElements;
 			glEnableVertexAttribArray(i);
 		}
@@ -474,6 +548,17 @@ namespace MBGE
 				break;
 			}
 		}
+		//huruvida vi har ben attributer läggs tills på slutet
+		int BoneAttributesSize = 0;
+		if (AssociatedModel->BoneMap.size() != 0)
+		{
+			for (size_t i = 0; i < MBGE_BONEPERVERTEX; i++)
+			{
+				Layout.AddAttribute(sizeof(int), 1, MBGE::DataTypes::Int);
+				Layout.AddAttribute(sizeof(float), 1, MBGE::DataTypes::Float);
+				BoneAttributesSize += (sizeof(int) + sizeof(float));
+			}
+		}
 		VAO.Bind();
 		VertexSize = Layout.VertexSize();
 		//vi vet att storleken av arrayen alltid är 3 * antalet faces då vi gjort om dem till trianglar
@@ -561,9 +646,42 @@ namespace MBGE
 					break;
 				}
 			}
+			//om offseten är mindre än än helt vertex lägger vi till så att den blir det, så vi kan lägga till fler attributes utan att hela systemet bryter samman
+			if (Offset%VertexSize != 0)
+			{
+				Offset += (VertexSize - (Offset % VertexSize));
+			}
+		}
+		//har vi bendata vill vi lägga in det i vektorn med
+		//if (AssociatedModel->BoneMap.size()!= 0)
+		if (AssociatedModel->BoneMap.size() != 0)
+		{
+			std::vector<char> BonesPerVertex = std::vector<char>(VerticesCount, 0);
+			for (size_t i = 0; i < AssimpMesh->mNumBones; i++)
+			{
+				Bone MBBone = AssociatedModel->BoneMap[std::string(AssimpMesh->mBones[i]->mName.C_Str())];
+				for (size_t j = 0; j < MBBone.Weights.size(); j++)
+				{
+					int VertexToModify = MBBone.Weights[j].VertexIndex;
+					char VertexToModifyPreviousBoneCount = BonesPerVertex[VertexToModify];
+					BonesPerVertex[VertexToModify] += 1;
+					if (BonesPerVertex[VertexToModify] > MBGE_BONEPERVERTEX)
+					{
+						int Hej = BonesPerVertex[VertexToModify];
+						int Hej2 = BonesPerVertex[VertexToModify];
+					}
+					int VertexToModifyBoneDataOffset = VertexToModify * VertexSize+(VertexSize-BoneAttributesSize) + VertexToModifyPreviousBoneCount * (sizeof(int) + sizeof(float));
+					int* BoneIndexPtr = (int*)&VerticesData[VertexToModifyBoneDataOffset];
+					float* BoneWeightPtr = (float*)&VerticesData[VertexToModifyBoneDataOffset+sizeof(int)];
+					*BoneIndexPtr = MBBone.BoneIndex;
+					*BoneWeightPtr = MBBone.Weights[j].Weight;
+				}
+			}
 		}
 		//nu är all data innladdad, vi tar och sätter vårt buffer object likaså
-		Buffer.Bind();
+		float* DebugPointer = (float*)&VerticesData[0];
+		int DebugNumberOfFloats = VerticesData.size() / 4;
+ 		Buffer.Bind();
 		Buffer.ResizeBuffer(TotalData, &VerticesData[0]);
 		Layout.Bind();
 		VAO.UnBind();
@@ -670,6 +788,7 @@ namespace MBGE
 		}
 		return(ReturnValue);
 	}
+	//TODO lägg till support för material attributes som inte bara är textures
 	Material::Material(void* MaterialData, std::string ModelDirectory,MBGraphicsEngine* AttachedEngine)
 	{
 		AssciatedGraphicsEngine = AttachedEngine;
@@ -783,6 +902,234 @@ namespace MBGE
 			CurrentShader->SetUniform1i("FragUni.UseNormTex", false);
 		}
 	}
+	//Bone
+	Bone::Bone(void* AssimpData)
+	{
+		aiBone* AssimpBone = (aiBone*)AssimpData;
+		Weights.reserve(AssimpBone->mNumWeights);
+		for (size_t i = 0; i < AssimpBone->mNumWeights; i++)
+		{
+			Weights.push_back(BoneWeight{ AssimpBone->mWeights[i].mVertexId,AssimpBone->mWeights[i].mWeight});
+		}
+		BoneID = std::string(AssimpBone->mName.C_Str());
+		for (size_t i = 0; i < 4; i++)
+		{
+			for (size_t j = 0; j < 4; j++)
+			{
+				OffsetMatrix(i, j) = AssimpBone->mOffsetMatrix[i][j];
+			}
+		}
+	}
+	//NodeAnimation
+	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedRotation(float TimeInSec)
+	{
+		//vi ser vad som händer om vi kör ingen interpolering
+		NodeAnimationRotationKey LowerKey;
+		NodeAnimationRotationKey HigherKey;
+		for (size_t i = 0; i < RotationKeys.size(); i++)
+		{
+			if (RotationKeys[i].KeyTime / TicksPerSec >= TimeInSec)
+			{
+				HigherKey = RotationKeys[i];
+				//return(MBMath::MBMatrix4<float>(HigherKey.Rotation.GetRotationMatrix()));
+				if (i != 0)
+				{
+					LowerKey = RotationKeys[i - 1];
+				}
+				else
+				{
+					//vi har bara en key, rätt konstigt, så vi sätter dem till samma
+					LowerKey.Rotation = HigherKey.Rotation;
+					HigherKey.KeyTime = (TimeInSec + 1) * TicksPerSec;
+					LowerKey.KeyTime = 0;
+					//assert(false);
+				}
+				break;
+			}
+			if (i == RotationKeys.size() - 1)
+			{
+				//innebär antingen att vi bara har en key, eller att vi gått över tiden, oavsett vad så går vi till början
+				LowerKey = RotationKeys[0];
+				if (RotationKeys.size() > 1)
+				{
+					HigherKey = RotationKeys[1];
+				}
+				else
+				{
+					HigherKey.KeyTime = LowerKey.KeyTime + 1 * TicksPerSec;
+					HigherKey.Rotation = LowerKey.Rotation;
+				}
+				TimeInSec = fmod(TimeInSec, HigherKey.KeyTime / TicksPerSec);
+				//assert(false);
+			}
+		}
+		float KeyTimeDifference = (HigherKey.KeyTime - LowerKey.KeyTime) / TicksPerSec;
+		float ElapsedTime = TimeInSec-(LowerKey.KeyTime / TicksPerSec);
+		assert(ElapsedTime >= 0);
+		float NormalizedTime = ElapsedTime / KeyTimeDifference;
+		MBMath::Quaternion<float> NewRotation = LowerKey.Rotation.Slerp(HigherKey.Rotation, NormalizedTime);
+		MBMath::MBMatrix4<float> ReturnValue = MBMath::MBMatrix4<float>(NewRotation.GetRotationMatrix());
+		return(ReturnValue);
+	}
+	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedScaling(float TimeInSec)
+	{
+		NodeAnimationScalingKey LowerKey;
+		NodeAnimationScalingKey HigherKey;
+		for (size_t i = 0; i < ScalingKeys.size(); i++)
+		{
+			if (ScalingKeys[i].KeyTime / TicksPerSec >= TimeInSec)
+			{
+				HigherKey = ScalingKeys[i];
+				if (i != 0)
+				{
+					LowerKey = ScalingKeys[i - 1];
+				}
+				else
+				{
+					//vi har bara en key, rätt konstigt, så vi sätter dem till samma
+					LowerKey.Scaling = HigherKey.Scaling;
+					HigherKey.KeyTime = (TimeInSec+1)*TicksPerSec;
+					LowerKey.KeyTime = 0;
+					//assert(false);
+				}
+				break;
+			}
+			if (i == ScalingKeys.size() - 1)
+			{
+				//innebär antingen att vi bara har en key, eller att vi gått över tiden, oavsett vad så går vi till början
+				LowerKey = ScalingKeys[0];
+				if (ScalingKeys.size() > 1)
+				{
+					HigherKey = ScalingKeys[1];
+				}
+				else
+				{
+					HigherKey.KeyTime = LowerKey.KeyTime + 1 * TicksPerSec;
+					HigherKey.Scaling = LowerKey.Scaling;
+				}
+				TimeInSec = fmod(TimeInSec, HigherKey.KeyTime / TicksPerSec);
+				//assert(false);
+			}
+		}
+		float KeyTimeDifference = (HigherKey.KeyTime - LowerKey.KeyTime) / TicksPerSec;
+		float ElapsedTime = TimeInSec-(LowerKey.KeyTime / TicksPerSec);
+		assert(ElapsedTime >= 0);
+		float NormalizedTime = ElapsedTime / KeyTimeDifference;
+		MBMath::MBVector3<float> NewScale = LowerKey.Scaling.LinearInterpolation(HigherKey.Scaling, NormalizedTime);
+		MBMath::MBMatrix4<float> ReturnValue = MBMath::MBMatrix4<float>();
+		//ska det vara minus kanske?
+		ReturnValue(0, 0) = NewScale[0];
+		ReturnValue(1, 1) = NewScale[1];
+		ReturnValue(2, 2) = NewScale[2];
+		return(ReturnValue);
+	}
+	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedTranslation(float TimeInSec)
+	{
+		NodeAnimationPositionKey LowerKey;
+		NodeAnimationPositionKey HigherKey;
+		for (size_t i = 0; i < TranslationKeys.size(); i++)
+		{
+			if (TranslationKeys[i].KeyTime/TicksPerSec >= TimeInSec)
+			{
+				HigherKey = TranslationKeys[i];
+				if (i != 0)
+				{
+					LowerKey = TranslationKeys[i-1];
+				}
+				else
+				{
+					//vi har bara en key, rätt konstigt, så vi sätter dem till samma
+					LowerKey.Position = HigherKey.Position;
+					HigherKey.KeyTime = (TimeInSec + 1) * TicksPerSec;
+					LowerKey.KeyTime = 0;
+					//assert(false);
+				}
+				break;
+			}
+			if (i == TranslationKeys.size() - 1)
+			{
+				//innebär antingen att vi bara har en key, eller att vi gått över tiden, oavsett vad så går vi till början
+				LowerKey = TranslationKeys[0];
+				if (TranslationKeys.size() > 1)
+				{
+					HigherKey = TranslationKeys[1];
+				}
+				else
+				{
+					HigherKey.KeyTime = LowerKey.KeyTime + 1 * TicksPerSec;
+					HigherKey.Position = LowerKey.Position;
+				}
+				TimeInSec = fmod(TimeInSec, HigherKey.KeyTime / TicksPerSec);
+				//assert(false);
+			}
+		}
+		float KeyTimeDifference = (HigherKey.KeyTime - LowerKey.KeyTime) / TicksPerSec;
+		float ElapsedTime = TimeInSec-(LowerKey.KeyTime / TicksPerSec);
+		assert(ElapsedTime >= 0);
+		float NormalizedTime = ElapsedTime / KeyTimeDifference;
+		MBMath::MBVector3<float> NewTranslation = LowerKey.Position.LinearInterpolation(HigherKey.Position, NormalizedTime);
+		MBMath::MBMatrix4<float> ReturnValue = MBMath::MBMatrix4<float>();
+		//ska det vara minus kanske?
+		ReturnValue(0, 3) = NewTranslation[0];
+		ReturnValue(1, 3) = NewTranslation[1];
+		ReturnValue(2, 3) = NewTranslation[2];
+		return(ReturnValue);
+	}
+	NodeAnimation::NodeAnimation(void* AssimpData,double AnimationDuration,double NewTicksPerSec)
+	{
+		aiNodeAnim* AssimpNodeAnimation = (aiNodeAnim*)AssimpData;
+		TickDuration = AnimationDuration;
+		TicksPerSec = NewTicksPerSec;
+		for (size_t i = 0; i < AssimpNodeAnimation->mNumPositionKeys; i++)
+		{
+			NodeAnimationPositionKey NewPositionKey;
+			NewPositionKey.KeyTime = AssimpNodeAnimation->mPositionKeys[i].mTime;
+			NewPositionKey.Position[0] = AssimpNodeAnimation->mPositionKeys[i].mValue[0];
+			NewPositionKey.Position[1] = AssimpNodeAnimation->mPositionKeys[i].mValue[1];
+			NewPositionKey.Position[2] = AssimpNodeAnimation->mPositionKeys[i].mValue[2];
+			TranslationKeys.push_back(NewPositionKey);
+		}
+		for (size_t i = 0; i < AssimpNodeAnimation->mNumScalingKeys; i++)
+		{
+			NodeAnimationScalingKey NewScalingKey;
+			NewScalingKey.KeyTime = AssimpNodeAnimation->mScalingKeys[i].mTime;
+			NewScalingKey.Scaling[0] = AssimpNodeAnimation->mScalingKeys[i].mValue[0];
+			NewScalingKey.Scaling[1] = AssimpNodeAnimation->mScalingKeys[i].mValue[1];
+			NewScalingKey.Scaling[2] = AssimpNodeAnimation->mScalingKeys[i].mValue[2];
+			ScalingKeys.push_back(NewScalingKey);
+		}
+		for (size_t i = 0; i < AssimpNodeAnimation->mNumRotationKeys; i++)
+		{
+			NodeAnimationRotationKey NewRotationKey;
+			NewRotationKey.KeyTime = AssimpNodeAnimation->mRotationKeys[i].mTime;
+			NewRotationKey.Rotation.a = AssimpNodeAnimation->mRotationKeys[i].mValue.w;
+			NewRotationKey.Rotation.i = AssimpNodeAnimation->mRotationKeys[i].mValue.x;
+			NewRotationKey.Rotation.j = AssimpNodeAnimation->mRotationKeys[i].mValue.y;
+			NewRotationKey.Rotation.k = AssimpNodeAnimation->mRotationKeys[i].mValue.z;
+			RotationKeys.push_back(NewRotationKey);
+		}
+	}
+	MBMath::MBMatrix4<float> NodeAnimation::GetTransformation(float TimeInSec)
+	{
+		MBMath::MBMatrix4<float> ReturnValue = GetInterpolatedTranslation(TimeInSec) * GetInterpolatedRotation(TimeInSec) * GetInterpolatedScaling(TimeInSec);
+		return(ReturnValue);
+	}
+	//ModelAnimation
+	ModelAnimation::ModelAnimation(void* AssimpData)
+	{
+		aiAnimation* AssimpAnimation = (aiAnimation*)AssimpData;
+		TicksPerSec = AssimpAnimation->mTicksPerSecond;
+		TickDuration = AssimpAnimation->mDuration;
+		for (size_t i = 0; i < AssimpAnimation->mNumChannels; i++)
+		{
+			NodeAnimations[std::string(AssimpAnimation->mChannels[i]->mNodeName.C_Str())] = NodeAnimation(AssimpAnimation->mChannels[i],AssimpAnimation->mDuration,AssimpAnimation->mTicksPerSecond);
+		}
+	}
+	MBMath::MBMatrix4<float> ModelAnimation::GetNodeTransformation(float TimeInSec,std::string Node)
+	{
+		NodeAnimation AssociatedNodeTransformation = NodeAnimations[Node];
+		return(AssociatedNodeTransformation.GetTransformation(TimeInSec));
+	}
 	//Model
 	void Model::Rotate(float DegreesToRotate, MBMath::MBVector3<float> RotationAxis)
 	{
@@ -828,17 +1175,55 @@ namespace MBGE
 			ModelMaterials.push_back(Material(LoadedScene->mMaterials[i], ModelPath.substr(0, ModelPath.find_last_of("/")+1),AssociatedEngine));
 		}
 	}
+	ModelAnimation* Model::GetCurrentAnimation()
+	{
+		if (Animations.size() > 0)
+		{
+			return(&Animations.front());
+		}
+		else
+		{
+			return(nullptr);
+		}
+	}
 	Model::Model(std::string ModelPath, std::vector<MaterialAttribute> MaterialAttributes, MBGraphicsEngine* AttachedEngine)
 	{
 		//hur vi faktiskt tar och laddar in moddelen
 		AssociatedEngine = AttachedEngine;
 		std::vector<VertexAttributes> StandardAttributeOrder = { VertexAttributes::TextureCoordinates,VertexAttributes::Tangent,VertexAttributes::Bitangent,VertexAttributes::VertexNormal };
 		Assimp::Importer Importer;
+		//Importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
 		const aiScene* LoadedScene = Importer.ReadFile(ModelPath, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
 		if (!LoadedScene || LoadedScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !LoadedScene->mRootNode)
 		{
 			std::cout << "ERROR::ASSIMP::" << Importer.GetErrorString() << std::endl;
 			return;
+		}
+		//börjar med att lägg till våra ben till en mapp
+		//vi vi sätter ben 0 att vara "noll benet" som är enhetsmatrisen så alla vertices kan ha lika många ben
+		int BoneIndexCounter = 1;
+		for (size_t i = 0; i < LoadedScene->mNumMeshes; i++)
+		{
+			for (size_t j = 0; j < LoadedScene->mMeshes[i]->mNumBones; j++)
+			{
+				aiBone* NewBone = LoadedScene->mMeshes[i]->mBones[j];
+				std::string NewBoneID = std::string(NewBone->mName.C_Str());
+				if (BoneMap.find(NewBoneID) == BoneMap.end())
+				{
+					BoneMap[NewBoneID] = Bone(NewBone);
+					BoneMap[NewBoneID].BoneIndex = BoneIndexCounter;
+					BoneIndexCounter += 1;
+				}
+			}
+		}
+		BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(BoneIndexCounter, MBMath::MBMatrix4<float>());
+		//lägger till nodes, populatar ben data som meshesen behöver
+		TopNode = Node(LoadedScene->mRootNode, nullptr, this);
+		InverseGlobalMatrix = TopNode.GetLocalTransformation().GetMatrixData().InvertedMatrix();
+		//lägger till animationer
+		for (size_t i = 0; i < LoadedScene->mNumAnimations; i++)
+		{
+			Animations.push_back(ModelAnimation(LoadedScene->mAnimations[i]));
 		}
 		//lägger till meshes
 		unsigned int NumberOfMeshes = LoadedScene->mNumMeshes;
@@ -849,8 +1234,6 @@ namespace MBGE
 			NumberOfTriangels += ModelMeshes.back()->NumberOfVertices();
 		}
 		std::cout << "Number of Triangels " << NumberOfTriangels / 3 << std::endl;
-		//lägger till nodes
-		TopNode = Node(LoadedScene->mRootNode, nullptr, this);
 		//lägger till materials
 		unsigned int NumberOfMaterials = LoadedScene->mNumMaterials;
 		for (size_t i = 0; i < NumberOfMaterials; i++)
@@ -873,7 +1256,82 @@ namespace MBGE
 		//vi callar helt enkelt nodens draw funktion, som ritar grejen rekursivt
 		//TODO optimera så vi inte behöver getta shadern varje frame
 		AssociatedEngine->SetCurrentShader(ModelShader);
-		TopNode.Draw(MBMath::MBMatrix4<float>());
+		if (BoneMap.size() != 0)
+		{
+			AnimationIsPlaying = true;
+			AnimationTime += AssociatedEngine->GetDeltaTimeInSec();
+			ModelAnimation* CurrentAnimation = GetCurrentAnimation();
+			if (AnimationTime > CurrentAnimation->GetDurationInSec())
+			{
+				AnimationTime = 0;
+			}
+			//AnimationTime = 0.001;
+			//för debugging
+			//AnimationTime = 0.001;
+			//vi kör "Draw
+			TopNode.DrawAnimation();
+		}
+		else
+		{
+			TopNode.Draw(MBMath::MBMatrix4<float>());
+		}
+	}
+	//framebuffer
+	FrameBuffer::FrameBuffer(int Width,int Height)
+	{
+		const unsigned int PixelWidth = Width;
+		const unsigned int PixelHeight = Height;
+		glGenFramebuffers(1, &FrameBufferHandle);
+		glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferHandle);
+		// generate texture
+		glGenTextures(1, &ColorTextureHandle);
+		glBindTexture(GL_TEXTURE_2D, ColorTextureHandle);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, PixelWidth, PixelHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glCheckError();
+		// attach it to currently bound framebuffer object
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ColorTextureHandle, 0);
+
+		glCheckError();
+		//depth buffer och stencil nu
+		glGenTextures(1, &DepthStencilTextureHandle);
+		glBindTexture(GL_TEXTURE_2D, DepthStencilTextureHandle);
+		glCheckError();
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, PixelWidth, PixelHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+		glCheckError();
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glCheckError();
+		// attach it to currently bound framebuffer object
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, DepthStencilTextureHandle, 0);
+		glCheckError();
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			std::cout << "Error creating framebuffer" << std::endl;
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glCheckError();
+	}
+	void FrameBuffer::Bind()
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferHandle);
+		glCheckError();
+	}
+	void FrameBuffer::BindColorBuffer(int Index)
+	{
+		glActiveTexture(GL_TEXTURE0 + Index);
+		glBindTexture(GL_TEXTURE_2D, ColorTextureHandle);
+		glCheckError();
+	}
+	void FrameBuffer::BindDepthBuffer(int Index)
+	{
+		glActiveTexture(GL_TEXTURE0 + Index);
+		glBindTexture(GL_TEXTURE_2D, DepthStencilTextureHandle);
+		glCheckError();
 	}
 	//Camera
 	Camera::Camera()
@@ -1094,7 +1552,10 @@ namespace MBGE
 	{
 		AssociatedModel = ModelToBelong;
 		ParentNode = NewParentNode;
+		AssociatedModel->NumberOfNodes += 1;
 		aiNode* AssimpNode = (aiNode*)NodeData;
+		NodeID = std::string(AssimpNode->mName.C_Str());
+		AssociatedModel->NodeNames.push_back(NodeID);
 		MeshIndexes.reserve(AssimpNode->mNumMeshes);
 		for (size_t i = 0; i < AssimpNode->mNumMeshes; i++)
 		{
@@ -1110,14 +1571,75 @@ namespace MBGE
 		}
 		for (size_t i = 0; i < AssimpNode->mNumChildren; i++)
 		{
-			Node* NewNode = new Node(AssimpNode->mChildren[i], this, ModelToBelong);
+			Node* NewNode = new Node(AssimpNode->mChildren[i],this, ModelToBelong);
 			ChildNodes.push_back(NewNode);
+		}
+	}
+	void Node::DrawAnimation()
+	{
+		if (ParentNode == nullptr)
+		{
+			//behövs den här ens?
+			ModelAnimation* CurrentAnimation = AssociatedModel->GetCurrentAnimation();
+			MBMath::MBMatrix4<float> NodeTransformation = LocalTransformation;
+			if (CurrentAnimation->IsInAnimation(NodeID) && NodeID != "")
+			{
+				NodeTransformation = CurrentAnimation->GetNodeTransformation(AssociatedModel->GetAnimationTimeInSec(), NodeID);
+			}
+			AssociatedModel->AssociatedEngine->CameraObject.SetModelMatrix(MBMath::MBMatrix4<float>());
+			AssociatedModel->AssociatedEngine->CameraObject.Update();
+			for (size_t i = 0; i < ChildNodes.size(); i++)
+			{
+				ChildNodes[i]->UpdateBones(NodeTransformation);
+			}
+			//nu tar vi och faktiskt uppdaterar våran shader
+			ShaderProgram* CurrentShader = AssociatedModel->AssociatedEngine->GetCurrentShader();
+			for (size_t i = 0; i < AssociatedModel->BoneOffsetList.size(); i++)
+			{
+				CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(i) + "]", AssociatedModel->BoneOffsetList[i].GetContinousDataPointer());
+			}
+		}
+		//tar tar vi och faktiskt ritar våra fina meshes
+		for (size_t i = 0; i < MeshIndexes.size(); i++)
+		{
+			Mesh* MeshToDraw = AssociatedModel->GetMesh(MeshIndexes[i]);
+			MeshToDraw->Draw();
+		}
+		for (size_t i = 0; i < ChildNodes.size(); i++)
+		{
+			ChildNodes[i]->DrawAnimation();
+		}
+	}
+	void Node::UpdateBones(MBMath::MBMatrix4<float> ParentTransformation)
+	{
+		ModelAnimation* CurrentAnimation = AssociatedModel->GetCurrentAnimation();
+		MBMath::MBMatrix4<float> NodeTransformation = ParentTransformation;
+		//nu uppdaterar vi faktiskt benet
+		if (CurrentAnimation->IsInAnimation(NodeID) && NodeID != "")
+		{
+			//NodeTransformation = NodeTransformation * CurrentAnimation->GetNodeTransformation(AssociatedModel->GetAnimationTimeInSec(), NodeID);
+			//NodeTransformation = ParentTransformation * LocalTransformation; verifierat att det fungerar med default posen
+			NodeTransformation = NodeTransformation * CurrentAnimation->GetNodeTransformation(AssociatedModel->GetAnimationTimeInSec(), NodeID);
+		}
+		else
+		{
+			NodeTransformation = NodeTransformation*LocalTransformation;
+		}
+		if (AssociatedModel->BoneMap.find(NodeID) != AssociatedModel->BoneMap.end())
+		{
+			Bone* AssociatedBone = &AssociatedModel->BoneMap[NodeID];
+			MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
+			AssociatedModel->BoneOffsetList[AssociatedBone->BoneIndex] = BoneTransform;
+			//std::cout << BoneTransform << std::endl;
+		}
+		for (size_t i = 0; i < ChildNodes.size(); i++)
+		{
+			ChildNodes[i]->UpdateBones(NodeTransformation);
 		}
 	}
 	void Node::Draw(MBMath::MBMatrix4<float> ParentTransformation)
 	{
-		MBMath::MBMatrix4<float> ModelMatrix = LocalTransformation * ParentTransformation;
-
+		MBMath::MBMatrix4<float> ModelMatrix = LocalTransformation* ParentTransformation;
 		//MBMath::MBMatrix4<float> ModelMatrix = MBMath::MBMatrix4<float>();
 		if (MeshIndexes.size() > 0)
 		{
@@ -1170,6 +1692,33 @@ namespace MBGE
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
+		//nu kan vi göra grejer som kräver en opengl kontext
+		PostProcessingFrameBuffer = new FrameBuffer(800, 600);
+		LoadShader("Default_PPS", "./Resources/Shaders/PostProcessing/PostProcessingVert.vert", "./Resources/Shaders/PostProcessing/PostProcessingFrag.frag");
+		float PBS_Vertices[] =
+		{
+			-1,-1, 0,0,
+			-1, 1, 0,1,
+			 1, 1, 1,1,
+			 1,-1, 1,0,
+		};
+		unsigned int PBS_Indexes[] =
+		{
+			0,1,2,
+			0,2,3
+		};
+
+		PBS_VertexArray = new VertexArrayObject();
+		PBS_VertexArray->Bind();
+		PBS_VertexBuffer = new VertexBuffer(VBTypes::StaticDraw, 16 * sizeof(unsigned int), PBS_Vertices);
+		PBS_ElementBuffer = new ElementBufferObject(6, PBS_Indexes);
+
+		PBS_Layout = new VertexLayout();
+		PBS_Layout->AddAttribute(sizeof(float), 2, MBGE::DataTypes::Float);
+		PBS_Layout->AddAttribute(sizeof(float), 2, MBGE::DataTypes::Float);
+		PBS_VertexBuffer->Bind();
+		PBS_Layout->Bind();
+		PBS_VertexArray->UnBind();
 	}
 	LightSource* MBGraphicsEngine::AddLightSource()
 	{
@@ -1185,14 +1734,45 @@ namespace MBGE
 			LightSources[i]->SetLightning(i);
 		}
 	}
-	void MBGraphicsEngine::Update()
+	void MBGraphicsEngine::DrawPostProcessing()
+	{
+		ShaderProgram* PPS_Shader = GetShader(PostProcessingShaderID);
+		PPS_Shader->Bind();
+		PPS_Shader->SetUniform1i("RenderedImage", 0);
+		PPS_Shader->SetUniform1i("DepthStencilTexture", 1);
+		PBS_VertexArray->Bind();
+		PBS_VertexBuffer->Bind();
+		PBS_ElementBuffer->Bind();
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		
+	}
+	void MBGraphicsEngine::PollEvents()
 	{
 		glfwPollEvents();
+	}
+	void MBGraphicsEngine::Update()
+	{
+		//nu bindar vi får color buffer som den vi ska rita, och ritar med post processing shadern
+		PostProcessingFrameBuffer->BindColorBuffer(0);
+		PostProcessingFrameBuffer->BindDepthBuffer(1);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDisable(GL_DEPTH_TEST);
+		DrawPostProcessing();
+
 		glfwSwapBuffers(Window);
 		//Kanske inte behövs
 		//CameraObject.Update();
+		//kanske inte ens behövs clearas
+		DeltaTime = (clock() - DeltaTimeTimer)/(double)CLOCKS_PER_SEC;
+		DeltaTimeTimer = clock();
+		PostProcessingFrameBuffer->Bind();
+		if (FrameByFrame)
+		{
+			DeltaTime = 0.0166666;
+		}
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
 		glCheckError();
 	}
 	ShaderProgram* MBGraphicsEngine::LoadShader(std::string ShaderID, std::string VertexShaderPath, std::string FragmentShaderPath)

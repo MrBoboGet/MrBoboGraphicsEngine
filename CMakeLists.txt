@@ -9,8 +9,8 @@ project ("MrBoboGraphicsEngine")
 # TODO: Add tests and install targets if needed.
 
 #Variablar
-set(MBL ${CMAKE_SOURCE_DIR}/../MyLibrary/)
-set(EXTLIB ${CMAKE_SOURCE_DIR}/../ExternaLibrarys/)
+set(MBL ${CMAKE_SOURCE_DIR}/../MrBoboLibrary/)
+set(EXTLIB ${CMAKE_SOURCE_DIR}/../MBExternalDependencies/)
 set(EXTLIB_OUTDIR ${CMAKE_SOURCE_DIR}/ExternalOuts)
 if(WIN32)
 	set(EXTLIB_OUTDIR ${EXTLIB_OUTDIR}/Windows)

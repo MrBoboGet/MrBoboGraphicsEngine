@@ -22,9 +22,9 @@ int main()
 	std::cout << TestRotation.Slerp(TestRotation2, 0.5) << std::endl;
 	exit(0);
 	*/
-	std::cout << std::filesystem::current_path() << std::endl;
-	std::filesystem::current_path(std::filesystem::current_path().parent_path().parent_path().parent_path());
-	std::cout << std::filesystem::current_path() << std::endl;
+	//std::cout << std::filesystem::current_path() << std::endl;
+	//std::filesystem::current_path(std::filesystem::current_path().parent_path().parent_path().parent_path());
+	//std::cout << std::filesystem::current_path() << std::endl;
 	MBGE::MBGraphicsEngine GraphicEngine;
 
 	GraphicEngine.CameraObject.SetFrustum(0.1, 1000, -0.1, 0.1, -0.1, 0.1);

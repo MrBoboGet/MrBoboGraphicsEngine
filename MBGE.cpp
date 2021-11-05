@@ -10,6 +10,9 @@
 #include <assimp/postprocess.h>
 #include <stb/stb_image.h>
 #include <assert.h>
+#include <filesystem>
+
+
 GLenum glCheckError_(const char* file, int line)
 {
 	GLenum errorCode;
@@ -38,7 +41,7 @@ namespace MBGE
 	{
 		std::ifstream t(SourcePath);
 		t.seekg(0, std::ios::end);
-		size_t size = t.tellg();
+		size_t size = std::filesystem::file_size(SourcePath);
 		std::string buffer(size, ' ');
 		t.seekg(0);
 		t.read(&buffer[0], size);

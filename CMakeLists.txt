@@ -9,7 +9,7 @@ project ("MrBoboGraphicsEngine")
 # TODO: Add tests and install targets if needed.
 
 #Variablar
-set(MBL ${CMAKE_SOURCE_DIR}/../MrBoboLibrary/)
+set(MBL ${CMAKE_SOURCE_DIR}/../MBUtility/)
 set(EXTLIB ${CMAKE_SOURCE_DIR}/../MBExternalDependencies/)
 set(EXTLIB_OUTDIR ${CMAKE_SOURCE_DIR}/ExternalOuts)
 if(WIN32)
@@ -63,7 +63,7 @@ add_executable (MrBoboGraphicsEngine "MrBoboGraphicsEngine.cpp" "MrBoboGraphicsE
 
 #Include Directorys
 set (INCLUDE_DIRS
-	${EXTLIB}/gl3w/include
+	${EXTLIB}/gl3w/include/
 	${EXTLIB}/assimp-5.0.1/include/assimp
 )
 target_include_directories(MrBoboGraphicsEngine PRIVATE ${MBL} ${CMAKE_SOURCE_DIR} ${EXTLIB} ${INCLUDE_DIRS})

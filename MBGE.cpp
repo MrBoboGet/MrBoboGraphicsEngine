@@ -5,9 +5,9 @@
 
 #include <gl3w/include/GL/gl3w.h>
 #include <glfw/include/GLFW/glfw3.h>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+#include <assimp/include/assimp/Importer.hpp>
+#include <assimp/include/assimp/scene.h>
+#include <assimp/include/assimp/postprocess.h>
 #include <stb/stb_image.h>
 #include <assert.h>
 #include <filesystem>
@@ -37,7 +37,7 @@ GLenum glCheckError_(const char* file, int line)
 namespace MBGE
 {
 	//Vertexshader
-	VertexShader::VertexShader(std::string SourcePath)
+	VertexShader::VertexShader(std::string const& SourcePath)
 	{
 		std::ifstream t(SourcePath);
 		t.seekg(0, std::ios::end);
@@ -47,27 +47,39 @@ namespace MBGE
 		t.read(&buffer[0], size);
 		//nu har vi läst in filen
 		const char* ShaderSourcePointer = buffer.c_str();
-		ShaderHandle = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(ShaderHandle, 1, &ShaderSourcePointer, NULL);
-		glCompileShader(ShaderHandle);
+		m_ShaderHandle = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(m_ShaderHandle, 1, &ShaderSourcePointer, NULL);
+		glCompileShader(m_ShaderHandle);
 		//checka om det lyckades
 		int  success;
 		char infoLog[512];
-		glGetShaderiv(ShaderHandle, GL_COMPILE_STATUS, &success);
+		glGetShaderiv(m_ShaderHandle, GL_COMPILE_STATUS, &success);
 		if (!success)
 		{
-			glGetShaderInfoLog(ShaderHandle, 512, NULL, infoLog);
+			glGetShaderInfoLog(m_ShaderHandle, 512, NULL, infoLog);
 			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
 		}
 		glCheckError();
+	}
+	VertexShader::VertexShader(VertexShader&& ShaderToSteal) noexcept
+	{
+		std::swap(m_ShaderHandle, ShaderToSteal.m_ShaderHandle);
+	}
+	VertexShader& VertexShader::operator=(VertexShader&& ShaderToSteal) noexcept
+	{
+		std::swap(m_ShaderHandle, ShaderToSteal.m_ShaderHandle);
+		return(*this);
 	}
 	VertexShader::~VertexShader()
 	{
-		glDeleteShader(ShaderHandle);
+		if (m_ShaderHandle != 0)
+		{
+			glDeleteShader(m_ShaderHandle);
+		}
 		glCheckError();
 	}
 	//geometry shader
-	GeometryShader::GeometryShader(std::string SourcePath)
+	GeometryShader::GeometryShader(std::string const& SourcePath)
 	{
 		std::ifstream t(SourcePath);
 		t.seekg(0, std::ios::end);
@@ -77,26 +89,38 @@ namespace MBGE
 		t.read(&buffer[0], size);
 		//nu har vi läst in filen
 		const char* ShaderSourcePointer = buffer.c_str();
-		ShaderHandle = glCreateShader(GL_GEOMETRY_SHADER);
-		glShaderSource(ShaderHandle, 1, &ShaderSourcePointer, NULL);
-		glCompileShader(ShaderHandle);
+		m_ShaderHandle = glCreateShader(GL_GEOMETRY_SHADER);
+		glShaderSource(m_ShaderHandle, 1, &ShaderSourcePointer, NULL);
+		glCompileShader(m_ShaderHandle);
 		//checka om det lyckades
 		int  success;
 		char infoLog[512];
-		glGetShaderiv(ShaderHandle, GL_COMPILE_STATUS, &success);
+		glGetShaderiv(m_ShaderHandle, GL_COMPILE_STATUS, &success);
 		if (!success)
 		{
-			glGetShaderInfoLog(ShaderHandle, 512, NULL, infoLog);
+			glGetShaderInfoLog(m_ShaderHandle, 512, NULL, infoLog);
 			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
 		}
 		glCheckError();
 	}
+	GeometryShader::GeometryShader(GeometryShader&& ShaderToSteal) noexcept
+	{
+		std::swap(m_ShaderHandle, ShaderToSteal.m_ShaderHandle);
+	}
+	GeometryShader& GeometryShader::operator=(GeometryShader&& ShaderToSteal) noexcept
+	{
+		std::swap(m_ShaderHandle, ShaderToSteal.m_ShaderHandle);
+		return(*this);
+	}
 	GeometryShader::~GeometryShader()
 	{
-		glDeleteShader(ShaderHandle);
+		if (m_ShaderHandle != 0)
+		{
+			glDeleteShader(m_ShaderHandle);
+		}
 	}
 	//fragmentShader
-	FragmentShader::FragmentShader(std::string SourcePath)
+	FragmentShader::FragmentShader(std::string const& SourcePath)
 	{
 		std::ifstream t(SourcePath);
 		t.seekg(0, std::ios::end);
@@ -106,69 +130,90 @@ namespace MBGE
 		t.read(&buffer[0], size);
 		//nu har vi läst in filen
 		const char* ShaderSourcePointer = buffer.c_str();
-		ShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(ShaderHandle, 1, &ShaderSourcePointer, NULL);
-		glCompileShader(ShaderHandle);
+		m_ShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(m_ShaderHandle, 1, &ShaderSourcePointer, NULL);
+		glCompileShader(m_ShaderHandle);
 		//checka om det lyckades
 		int  success;
 		char infoLog[512];
-		glGetShaderiv(ShaderHandle, GL_COMPILE_STATUS, &success);
+		glGetShaderiv(m_ShaderHandle, GL_COMPILE_STATUS, &success);
 		if (!success)
 		{
-			glGetShaderInfoLog(ShaderHandle, 512, NULL, infoLog);
+			glGetShaderInfoLog(m_ShaderHandle, 512, NULL, infoLog);
 			std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
 		}
 		glCheckError();
 	}
+	FragmentShader::FragmentShader(FragmentShader&& ShaderToSteal) noexcept
+	{
+		std::swap(m_ShaderHandle, ShaderToSteal.m_ShaderHandle);
+	}
+	FragmentShader& FragmentShader::operator=(FragmentShader&& ShaderToSteal) noexcept
+	{
+		std::swap(m_ShaderHandle, ShaderToSteal.m_ShaderHandle);
+		return(*this);
+	}
 	FragmentShader::~FragmentShader()
 	{
-		glDeleteShader(ShaderHandle);
+		if (m_ShaderHandle != 0)
+		{
+			glDeleteShader(m_ShaderHandle);
+		}
 		glCheckError();
 	}
 	//ShaderProgram
-	ShaderProgram::ShaderProgram(VertexShader VerShader, FragmentShader FragShader)
+	ShaderProgram::ShaderProgram(VertexShader const& VerShader, FragmentShader const& FragShader)
 	{
 		glCheckError();
-		ProgramHandle = glCreateProgram();
-		glAttachShader(ProgramHandle, VerShader.ShaderHandle);
-		glAttachShader(ProgramHandle, FragShader.ShaderHandle);
-		glLinkProgram(ProgramHandle);
+		m_ProgramHandle = glCreateProgram();
+		glAttachShader(m_ProgramHandle, VerShader.m_ShaderHandle);
+		glAttachShader(m_ProgramHandle, FragShader.m_ShaderHandle);
+		glLinkProgram(m_ProgramHandle);
 		int  success;
 		char infoLog[512];
-		glGetProgramiv(ProgramHandle, GL_LINK_STATUS, &success);
+		glGetProgramiv(m_ProgramHandle, GL_LINK_STATUS, &success);
 		if (!success)
 		{
-			glGetProgramInfoLog(ProgramHandle, 512, NULL, infoLog);
+			glGetProgramInfoLog(m_ProgramHandle, 512, NULL, infoLog);
 			std::cout << "ERROR::PROGRAM::LINK_FAILED\n" << infoLog << std::endl;
 		}
 		glCheckError();
 	}
-	ShaderProgram::ShaderProgram(VertexShader VerShader, GeometryShader GeomShader, FragmentShader FragShader)
+	ShaderProgram::ShaderProgram(ShaderProgram&& ShaderToSteal) noexcept
+	{
+		std::swap(m_ProgramHandle, ShaderToSteal.m_ProgramHandle);
+	}
+	ShaderProgram& ShaderProgram::operator=(ShaderProgram&& ShaderToSteal) noexcept
+	{
+		std::swap(m_ProgramHandle, ShaderToSteal.m_ProgramHandle);
+		return(*this);
+	}
+	ShaderProgram::ShaderProgram(VertexShader const& VerShader, GeometryShader const& GeomShader, FragmentShader const& FragShader)
 	{
 		glCheckError();
-		ProgramHandle = glCreateProgram();
-		glAttachShader(ProgramHandle, VerShader.ShaderHandle);
-		glAttachShader(ProgramHandle, FragShader.ShaderHandle);
-		glAttachShader(ProgramHandle, GeomShader.ShaderHandle);
-		glLinkProgram(ProgramHandle);
+		m_ProgramHandle = glCreateProgram();
+		glAttachShader(m_ProgramHandle, VerShader.m_ShaderHandle);
+		glAttachShader(m_ProgramHandle, FragShader.m_ShaderHandle);
+		glAttachShader(m_ProgramHandle, GeomShader.m_ShaderHandle);
+		glLinkProgram(m_ProgramHandle);
 		int  success;
 		char infoLog[512];
-		glGetProgramiv(ProgramHandle, GL_LINK_STATUS, &success);
+		glGetProgramiv(m_ProgramHandle, GL_LINK_STATUS, &success);
 		if (!success)
 		{
-			glGetProgramInfoLog(ProgramHandle, 512, NULL, infoLog);
+			glGetProgramInfoLog(m_ProgramHandle, 512, NULL, infoLog);
 			std::cout << "ERROR::PROGRAM::LINK_FAILED\n" << infoLog << std::endl;
 		}
 		glCheckError();
 	}
 	void ShaderProgram::Bind()
 	{
-		glUseProgram(ProgramHandle);
+		glUseProgram(m_ProgramHandle);
 		glCheckError();
 	}
-	void ShaderProgram::SetUniform4f(std::string UniformName, float x, float y, float z, float w)
+	void ShaderProgram::SetUniform4f(std::string const& UniformName, float x, float y, float z, float w)
 	{
-		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
 		if (UniformLocation == -1)
 		{
 			//invalid locatiopn printa
@@ -177,9 +222,9 @@ namespace MBGE
 		glUniform4f(UniformLocation, x, y, z, w);
 		glCheckError();
 	}
-	void ShaderProgram::SetUniform4i(std::string UniformName, int x, int y, int z, int w)
+	void ShaderProgram::SetUniform4i(std::string const& UniformName, int x, int y, int z, int w)
 	{
-		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
 		if (UniformLocation == -1)
 		{
 			//invalid locatiopn printa
@@ -188,9 +233,9 @@ namespace MBGE
 		glUniform4f(UniformLocation, x, y, z, w);
 		glCheckError();
 	}
-	void ShaderProgram::SetUniform1i(std::string UniformName, int x)
+	void ShaderProgram::SetUniform1i(std::string const& UniformName, int x)
 	{
-		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
 		if (UniformLocation == -1)
 		{
 			//invalid locatiopn printa
@@ -199,9 +244,9 @@ namespace MBGE
 		glUniform1i(UniformLocation, x);
 		glCheckError();
 	}
-	void ShaderProgram::SetUniform1f(std::string UniformName, float x)
+	void ShaderProgram::SetUniform1f(std::string const& UniformName, float x)
 	{
-		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
 		if (UniformLocation == -1)
 		{
 			//invalid locatiopn printa
@@ -210,9 +255,9 @@ namespace MBGE
 		glUniform1f(UniformLocation, x);
 		glCheckError();
 	}
-	void ShaderProgram::SetUniformMat4f(std::string UniformName, float* RowMajorData)
+	void ShaderProgram::SetUniformMat4f(std::string const& UniformName, float* RowMajorData)
 	{
-		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
 		if (UniformLocation == -1)
 		{
 			//invalid locatiopn printa
@@ -221,9 +266,9 @@ namespace MBGE
 		glUniformMatrix4fv(UniformLocation, 1, GL_TRUE, RowMajorData);
 		glCheckError();
 	}
-	void ShaderProgram::SetUniformVec3(std::string UniformName, float x, float y, float z)
+	void ShaderProgram::SetUniformVec3(std::string const& UniformName, float x, float y, float z)
 	{
-		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
 		if (UniformLocation == -1)
 		{
 			//invalid locatiopn printa
@@ -232,9 +277,9 @@ namespace MBGE
 		glUniform3f(UniformLocation, x, y, z);
 		glCheckError();
 	}
-	void ShaderProgram::SetUniformVec4(std::string UniformName, float x, float y, float z,float w)
+	void ShaderProgram::SetUniformVec4(std::string const& UniformName, float x, float y, float z,float w)
 	{
-		int UniformLocation = glGetUniformLocation(ProgramHandle, UniformName.c_str());
+		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
 		if (UniformLocation == -1)
 		{
 			//invalid locatiopn printa
@@ -255,29 +300,32 @@ namespace MBGE
 		GLchar name[bufSize]; // variable name in GLSL
 		GLsizei length; // name length
 
-		glGetProgramiv(ProgramHandle, GL_ACTIVE_ATTRIBUTES, &count);
+		glGetProgramiv(m_ProgramHandle, GL_ACTIVE_ATTRIBUTES, &count);
 		printf("Active Attributes: %d\n", count);
 
 		for (i = 0; i < count; i++)
 		{
-			glGetActiveAttrib(ProgramHandle, (GLuint)i, bufSize, &length, &size, &type, name);
+			glGetActiveAttrib(m_ProgramHandle, (GLuint)i, bufSize, &length, &size, &type, name);
 
 			printf("Attribute #%d Type: %u Name: %s\n", i, type, name);
 		}
 
-		glGetProgramiv(ProgramHandle, GL_ACTIVE_UNIFORMS, &count);
+		glGetProgramiv(m_ProgramHandle, GL_ACTIVE_UNIFORMS, &count);
 		printf("Active Uniforms: %d\n", count);
 
 		for (i = 0; i < count; i++)
 		{
-			glGetActiveUniform(ProgramHandle, (GLuint)i, bufSize, &length, &size, &type, name);
+			glGetActiveUniform(m_ProgramHandle, (GLuint)i, bufSize, &length, &size, &type, name);
 
 			printf("Uniform #%d Type: %u Name: %s\n", i, type, name);
 		}
 	}
 	ShaderProgram::~ShaderProgram()
 	{
-		glDeleteProgram(ProgramHandle);
+		if (m_ProgramHandle != 0)
+		{
+			glDeleteProgram(m_ProgramHandle);
+		}
 		glCheckError();
 	}
 	//VertexLayout
@@ -321,7 +369,7 @@ namespace MBGE
 	//vertexbuffer
 	void VertexBuffer::Bind()
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, BufferHandle);
+		glBindBuffer(GL_ARRAY_BUFFER, m_BufferHandle);
 		glCheckError();
 	}
 	void VertexBuffer::Unbind()
@@ -329,9 +377,9 @@ namespace MBGE
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glCheckError();
 	}
-	VertexBuffer::VertexBuffer(VBTypes BufferType, unsigned long long InitialSize, void* InitialData)
+	VertexBuffer::VertexBuffer(VBTypes BufferType, unsigned long long InitialSize, const void* InitialData)
 	{
-		BufferSize = InitialSize;
+		m_BufferSize = InitialSize;
 		unsigned int DrawType = 0;
 		if (BufferType == VBTypes::DynamicDraw)
 		{
@@ -345,29 +393,43 @@ namespace MBGE
 		{
 			DrawType = GL_STREAM_DRAW;
 		}
-		CurrentDrawType = DrawType;
-		glGenBuffers(1, &BufferHandle);
-		glBindBuffer(GL_ARRAY_BUFFER, BufferHandle);
+		m_CurrentDrawType = DrawType;
+		glGenBuffers(1, &m_BufferHandle);
+		glBindBuffer(GL_ARRAY_BUFFER, m_BufferHandle);
 		glBufferData(GL_ARRAY_BUFFER, InitialSize, InitialData, DrawType);
 		glCheckError();
 	}
+
+	VertexBuffer::VertexBuffer(VertexBuffer&& BufferToSteal) noexcept
+	{
+		std::swap(m_BufferHandle, BufferToSteal.m_BufferHandle);
+		std::swap(m_BufferSize, BufferToSteal.m_BufferSize);
+		std::swap(m_CurrentDrawType, BufferToSteal.m_CurrentDrawType);
+	}
+	VertexBuffer& VertexBuffer::operator=(VertexBuffer&& BufferToSteal) noexcept
+	{
+		std::swap(m_BufferHandle, BufferToSteal.m_BufferHandle);
+		std::swap(m_BufferSize, BufferToSteal.m_BufferSize);
+		std::swap(m_CurrentDrawType, BufferToSteal.m_CurrentDrawType);
+		return(*this);
+	}
 	VertexBuffer::VertexBuffer()
 	{
-		CurrentDrawType = GL_DYNAMIC_DRAW;
-		glGenBuffers(1, &BufferHandle);
+		m_CurrentDrawType = GL_DYNAMIC_DRAW;
+		glGenBuffers(1, &m_BufferHandle);
 		glCheckError();
 	}
 	unsigned int VertexBuffer::SizeOfBuffer()
 	{
-		return(BufferSize);
+		return(m_BufferSize);
 	}
-	void VertexBuffer::ResizeBuffer(unsigned int NewSize,void* Data)
+	void VertexBuffer::ResizeBuffer(unsigned int NewSize,const void* Data)
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, BufferHandle);
-		glBufferData(GL_ARRAY_BUFFER, NewSize, Data, CurrentDrawType);
+		glBindBuffer(GL_ARRAY_BUFFER, m_BufferHandle);
+		glBufferData(GL_ARRAY_BUFFER, NewSize, Data, m_CurrentDrawType);
 		glCheckError();
 	}
-	void VertexBuffer::FillBuffer(unsigned int Offset, unsigned int NumberOfBytes, void* Data)
+	void VertexBuffer::FillBuffer(unsigned int Offset, unsigned int NumberOfBytes, const void* Data)
 	{
 		glBufferSubData(GL_ARRAY_BUFFER, Offset, NumberOfBytes, Data);
 		glCheckError();
@@ -379,7 +441,10 @@ namespace MBGE
 	}
 	VertexBuffer::~VertexBuffer()
 	{
-		glDeleteBuffers(1, &BufferHandle);
+		if (m_BufferHandle != 0)
+		{
+			glDeleteBuffers(1, &m_BufferHandle);
+		}
 		glCheckError();
 	}
 	//VertexArrayObject
@@ -404,37 +469,47 @@ namespace MBGE
 		glCheckError();
 	}
 	//ElementBufferObject
-	ElementBufferObject::ElementBufferObject(unsigned int NumberOfElements,unsigned int* Data)
+	ElementBufferObject::ElementBufferObject(unsigned int NumberOfElements,const unsigned int* Data)
 	{
-		glGenBuffers(1, &ObjectHandle);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ObjectHandle);
+		glGenBuffers(1, &m_ObjectHandle);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ObjectHandle);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, NumberOfElements * sizeof(int), Data, GL_STATIC_DRAW);
 		glCheckError();
 	}
-	void ElementBufferObject::ResizeBuffer(unsigned int NumberOfElements, void* Data)
+	void ElementBufferObject::ResizeBuffer(unsigned int NumberOfElements, const void* Data)
 	{
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ObjectHandle);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ObjectHandle);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, NumberOfElements *sizeof(int), Data, GL_STATIC_DRAW);
 		glCheckError();
 	}
-	void ElementBufferObject::FillBuffer(unsigned int Offset, unsigned int NumberOfBytes, void* Data)
+	void ElementBufferObject::FillBuffer(unsigned int Offset, unsigned int NumberOfBytes, const void* Data)
 	{
 		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, Offset, NumberOfBytes, Data);
 		glCheckError();
 	}
+
+	ElementBufferObject::ElementBufferObject(ElementBufferObject&& ObjectToSteal) noexcept
+	{
+		std::swap(m_ObjectHandle, ObjectToSteal.m_ObjectHandle);
+	}
+	ElementBufferObject& ElementBufferObject::operator=(ElementBufferObject&& ObjectToCopy) noexcept
+	{
+		std::swap(m_ObjectHandle, ObjectToCopy.m_ObjectHandle);
+		return(*this);
+	}
 	ElementBufferObject::ElementBufferObject()
 	{
-		glGenBuffers(1, &ObjectHandle);
+		glGenBuffers(1, &m_ObjectHandle);
 		glCheckError();
 	}
 	ElementBufferObject::~ElementBufferObject()
 	{
-		glDeleteBuffers(1, &ObjectHandle);
+		glDeleteBuffers(1, &m_ObjectHandle);
 		glCheckError();
 	}
 	void ElementBufferObject::Bind()
 	{
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ObjectHandle);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ObjectHandle);
 		glCheckError();
 	}
 	void ElementBufferObject::UnBind()
@@ -462,11 +537,11 @@ namespace MBGE
 	}
 	void Vertex::Swap(Vertex& OtherVertex)
 	{
-		unsigned char* TempPointer = this->VertexData;
-		this->VertexData = OtherVertex.VertexData;
-		OtherVertex.VertexData = TempPointer;
+		std::swap(VertexData, OtherVertex.VertexData);
+		std::swap(DataSize, OtherVertex.DataSize);
+		std::swap(Position, OtherVertex.Position);
 	}
-	Vertex::Vertex(Vertex& OtherVertex)
+	Vertex::Vertex(Vertex const& OtherVertex)
 	{
 		//skapar ny data likla med den andras storlek
 		DataSize = OtherVertex.DataSize;
@@ -479,7 +554,6 @@ namespace MBGE
 	Vertex::Vertex(Vertex&& OtherVertex) noexcept
 	{
 		//skapar ny data likla med den andras storlek
-		DataSize = OtherVertex.DataSize;
 		Swap(OtherVertex);
 	}
 	Vertex::~Vertex()
@@ -849,7 +923,7 @@ namespace MBGE
 	}
 	Material::Material(void* MaterialData,std::string PathToModel, std::vector<MaterialAttribute> NewMaterialAttributes, MBGraphicsEngine* AttachedEngine)
 	{
-		NewMaterialAttributes = NewMaterialAttributes;
+		MaterialShaderAttributes = NewMaterialAttributes;
 		AssciatedGraphicsEngine = AttachedEngine;
 		if (VectorContains<MaterialAttribute>(NewMaterialAttributes, MaterialAttribute::DiffuseTexture));
 		{
@@ -1550,6 +1624,15 @@ namespace MBGE
 		std::swap(MeshIndexes, OtherNode.MeshIndexes);
 		std::swap(LocalTransformation, OtherNode.LocalTransformation);
 		std::swap(AssociatedModel, OtherNode.AssociatedModel);
+		std::swap(NodeID, OtherNode.NodeID);
+	}
+	void Node::p_UpdateChildParents()
+	{
+		for (size_t i = 0; i < ChildNodes.size(); i++)
+		{
+			ChildNodes[i].ParentNode = this;
+			ChildNodes[i].p_UpdateChildParents();
+		}
 	}
 	Node::Node(void* NodeData, Node* NewParentNode, Model* ModelToBelong)
 	{
@@ -1574,8 +1657,8 @@ namespace MBGE
 		}
 		for (size_t i = 0; i < AssimpNode->mNumChildren; i++)
 		{
-			Node* NewNode = new Node(AssimpNode->mChildren[i],this, ModelToBelong);
-			ChildNodes.push_back(NewNode);
+			Node NewNode = Node(AssimpNode->mChildren[i],this, ModelToBelong);
+			ChildNodes.push_back(std::move(NewNode));
 		}
 	}
 	void Node::DrawAnimation()
@@ -1593,7 +1676,7 @@ namespace MBGE
 			AssociatedModel->AssociatedEngine->CameraObject.Update();
 			for (size_t i = 0; i < ChildNodes.size(); i++)
 			{
-				ChildNodes[i]->UpdateBones(NodeTransformation);
+				ChildNodes[i].UpdateBones(NodeTransformation);
 			}
 			//nu tar vi och faktiskt uppdaterar våran shader
 			ShaderProgram* CurrentShader = AssociatedModel->AssociatedEngine->GetCurrentShader();
@@ -1610,7 +1693,7 @@ namespace MBGE
 		}
 		for (size_t i = 0; i < ChildNodes.size(); i++)
 		{
-			ChildNodes[i]->DrawAnimation();
+			ChildNodes[i].DrawAnimation();
 		}
 	}
 	void Node::UpdateBones(MBMath::MBMatrix4<float> ParentTransformation)
@@ -1637,7 +1720,7 @@ namespace MBGE
 		}
 		for (size_t i = 0; i < ChildNodes.size(); i++)
 		{
-			ChildNodes[i]->UpdateBones(NodeTransformation);
+			ChildNodes[i].UpdateBones(NodeTransformation);
 		}
 	}
 	void Node::Draw(MBMath::MBMatrix4<float> ParentTransformation)
@@ -1657,14 +1740,7 @@ namespace MBGE
 		}
 		for (size_t i = 0; i < ChildNodes.size(); i++)
 		{
-			ChildNodes[i]->Draw(ModelMatrix);
-		}
-	}
-	Node::~Node()
-	{
-		for (size_t i = 0; i < ChildNodes.size(); i++)
-		{
-			delete ChildNodes[i];
+			ChildNodes[i].Draw(ModelMatrix);
 		}
 	}
 	//MBGraphicsEngine

@@ -28,45 +28,71 @@ namespace MBGE
 	{
 		friend class ShaderProgram;
 	private:
-		unsigned int ShaderHandle = 0;
+		unsigned int m_ShaderHandle = 0;
 	public: 
-		VertexShader(std::string ShaderSourcePath);
+		VertexShader(VertexShader const&) = delete;
+		VertexShader& operator=(VertexShader const&) = delete;
+
+		VertexShader(VertexShader&& ShaderToSteal) noexcept;
+		VertexShader& operator=(VertexShader&&) noexcept;
+
+		VertexShader(std::string const& ShaderSourcePath);
 		~VertexShader();
 	};
 	class GeometryShader
 	{
 		friend class ShaderProgram;
 	private:
-		unsigned int ShaderHandle = 0;
+		unsigned int m_ShaderHandle = 0;
 	public:
-		GeometryShader(std::string ShaderSourcePath);
+		GeometryShader(GeometryShader const&) = delete;
+		GeometryShader& operator=(GeometryShader const&) = delete;
+
+		GeometryShader(GeometryShader&& ShaderToSteal) noexcept;
+		GeometryShader& operator=(GeometryShader&&) noexcept;
+
+		GeometryShader(std::string const& ShaderSourcePath);
 		~GeometryShader();
 	};
 	class FragmentShader
 	{
 		friend class ShaderProgram;
 	private:
-		unsigned int ShaderHandle = 0;
+		unsigned int m_ShaderHandle = 0;
 	public:
-		FragmentShader(std::string ShaderSourcePath);
+		FragmentShader(FragmentShader const&) = delete;
+		FragmentShader& operator=(FragmentShader const&) = delete;
+
+		FragmentShader(FragmentShader&& ShaderToSteal) noexcept;
+		FragmentShader& operator=(FragmentShader&&) noexcept;
+
+		FragmentShader(std::string const& ShaderSourcePath);
 		~FragmentShader();
 	};
 	class ShaderProgram
 	{
 	private:
-		unsigned int ProgramHandle = 0;
+		unsigned int m_ProgramHandle = 0;
 	public:
-		ShaderProgram(VertexShader VerShader, FragmentShader FragShader);
-		ShaderProgram(VertexShader VerShader, GeometryShader GeomShader,FragmentShader FragShader);
+		ShaderProgram(ShaderProgram const&) = delete;
+		ShaderProgram& operator=(ShaderProgram const&) = delete;
+
+		ShaderProgram(ShaderProgram&& ShaderToSteal) noexcept;
+		ShaderProgram& operator=(ShaderProgram&&) noexcept;
+
+		ShaderProgram(VertexShader const& VerShader, FragmentShader const& FragShader);
+		ShaderProgram(VertexShader const& VerShader, GeometryShader const& GeomShader,FragmentShader const& FragShader);
+	
 		void Bind();
-		void SetUniform4f(std::string UniformName,float x,float y, float z, float w);
-		void SetUniform4i(std::string UniformName, int x, int y, int z, int w);
-		void SetUniform1i(std::string UniformName, int x);
-		void SetUniform1f(std::string UniformName, float x);
-		void SetUniformMat4f(std::string UniformName, float* RowMajorData);
-		void SetUniformVec3(std::string Uniformname, float x, float y, float z);
-		void SetUniformVec4(std::string Uniformname, float x, float y, float z,float w);
+		void SetUniform4f(std::string const& UniformName,float x,float y, float z, float w);
+		void SetUniform4i(std::string const& UniformName, int x, int y, int z, int w);
+		void SetUniform1i(std::string const& UniformName, int x);
+		void SetUniform1f(std::string const& UniformName, float x);
+		void SetUniformMat4f(std::string const& UniformName, float* RowMajorData);
+		void SetUniformVec3(std::string const& Uniformname, float x, float y, float z);
+		void SetUniformVec4(std::string const& Uniformname, float x, float y, float z,float w);
 		void PrintActiveAttributesAndUniforms();
+		
 		~ShaderProgram();
 	};
 	struct VertexAttributeStruct
@@ -88,21 +114,25 @@ namespace MBGE
 	class VertexBuffer
 	{
 	private:
-		unsigned int BufferHandle = 0;
-		unsigned int BufferSize = 0;
-		unsigned int CurrentDrawType = 0;
+		unsigned int m_BufferHandle = 0;
+		unsigned int m_BufferSize = 0;
+		unsigned int m_CurrentDrawType = 0;
 	public:
 		//semantiken av att kopiera implicit eller så makar inte för mycket sense
 		VertexBuffer& operator=(const VertexBuffer&) = delete;
 		VertexBuffer(const VertexBuffer&) = delete;
+
+		VertexBuffer(VertexBuffer&& BufferToSteal) noexcept;
+		VertexBuffer& operator=(VertexBuffer&& BufferToSteal) noexcept;
+
 		unsigned int SizeOfBuffer();
 		VertexBuffer();
-		VertexBuffer(VBTypes BufferType, unsigned long long InitialSize,  void* InitialData);
+		VertexBuffer(VBTypes BufferType, unsigned long long InitialSize,  const void* InitialData);
 		void Bind();
 		void Unbind();
 		void DrawTriangles();
-		void FillBuffer(unsigned int Offset,unsigned int NumberOfBytes,void* Data);
-		void ResizeBuffer(unsigned int NewSize,void* NewData);
+		void FillBuffer(unsigned int Offset,unsigned int NumberOfBytes,const void* Data);
+		void ResizeBuffer(unsigned int NewSize,const void* NewData);
 		~VertexBuffer();
 	};
 	class VertexArrayObject
@@ -124,16 +154,14 @@ namespace MBGE
 	public:
 		Vertex() {};
 		MBMath::MBVector3<float> Position;
-		Vertex(Vertex& VertexToCopy);
+		Vertex(Vertex const& VertexToCopy);
 		Vertex(Vertex&& VertexToMove) noexcept;
 		Vertex& operator=(Vertex VertexToCopy) noexcept
 		{
-			Position = VertexToCopy.Position;
 			Swap(VertexToCopy);
 		}
 		Vertex& operator=(Vertex&& VertexToMove) noexcept
 		{
-			Position = VertexToMove.Position;
 			Swap(VertexToMove);
 		}
 		Vertex(int NumberOfBytes, void* Data);
@@ -142,13 +170,19 @@ namespace MBGE
 	class ElementBufferObject
 	{
 	private:
-		unsigned int ObjectHandle = 0;
+		unsigned int m_ObjectHandle = 0;
 	public:
-		ElementBufferObject(unsigned int NumberOfElements, unsigned int* Data);
+		ElementBufferObject(ElementBufferObject const& ObjectToCopy) = delete;
+		ElementBufferObject& operator=(ElementBufferObject const& ObjectToCopy) = delete;
+
+		ElementBufferObject(ElementBufferObject&& ObjectToSteal) noexcept;
+		ElementBufferObject& operator=(ElementBufferObject&& ObjectToCopy) noexcept;
+
+		ElementBufferObject(unsigned int NumberOfElements, const unsigned int* Data);
 		ElementBufferObject();
 		//void DrawTriangles();
-		void FillBuffer(unsigned int Offset, unsigned int NumberOfBytes, void* Data);
-		void ResizeBuffer(unsigned int NewSize, void* NewData);
+		void FillBuffer(unsigned int Offset, unsigned int NumberOfBytes, const void* Data);
+		void ResizeBuffer(unsigned int NewSize, const void* NewData);
 		void Bind();
 		void UnBind();
 		~ElementBufferObject();
@@ -224,17 +258,27 @@ namespace MBGE
 	{
 	private:
 		Node* ParentNode = nullptr;
-		std::vector<Node*> ChildNodes = {};
+		std::vector<Node> ChildNodes = {};
 		std::vector<unsigned int> MeshIndexes = {};
 		MBMath::MBMatrix4<float> LocalTransformation = MBMath::MBMatrix4<float>();
 		Model* AssociatedModel = nullptr;
 		std::string NodeID = "";
 		void Swap(Node& OtherNode);
+
+		void p_UpdateChildParents();
 	public:
-		Node& operator=(Node OtherNode)
+		Node(Node const& OtherNode) = delete;
+
+		Node& operator=(Node OtherNode) noexcept
 		{
 			this->Swap(OtherNode);
+			p_UpdateChildParents();
 			return(*this);
+		}
+		Node(Node&& OtherNode) noexcept
+		{
+			Swap(OtherNode);
+			p_UpdateChildParents();
 		}
 		Node() {};
 		Node(void* NodeData, Node* ParentNode,Model* ModelToBelong);
@@ -243,7 +287,6 @@ namespace MBGE
 		void DrawAnimation();
 		void UpdateBones(MBMath::MBMatrix4<float> ParentTransformation);
 		//kommer med detta behöva en egentlig copy constructor och etc
-		~Node();
 	};
 	class Material
 	{

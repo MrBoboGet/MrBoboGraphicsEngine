@@ -1,0 +1,10 @@
+{
+	"PacketName":"MBGraphicsEngine",
+	"Attributes":["Embeddable"],
+	"OutputConfigurations":["StaticDebug","StaticRelease"],
+	"OutputTargetNames": {
+		"StaticRelease": "MBGraphicsEngine_SR",
+		"StaticDebug": "MBGraphicsEngine_SD"
+	},
+	"Dependancies":["MBUtility"]
+}

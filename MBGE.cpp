@@ -586,7 +586,7 @@ namespace MBGE
 			VerticesData[i] = NewData[i];
 		}
 	}
-	Mesh::Mesh(void* MeshDataObject,std::vector<VertexAttributes> AttributeOrder,Model* ModelToBelong)
+	Mesh::Mesh(void* MeshDataObject,std::vector<VertexAttributes> const& AttributeOrder,Model* ModelToBelong)
 		: Buffer(), ArrayObject(),VAO(),Layout()
 	{
 		const int TextureDimensions = 2;
@@ -764,11 +764,14 @@ namespace MBGE
 		VAO.UnBind();
 		//TODO lägg till så att vi kan fixa bena
 	}
-	void Mesh::Rotate(float DegreesToRotate, MBMath::MBVector3<float> RotationAxis)
+	void Mesh::Rotate(float DegreesToRotate, MBMath::MBVector3<float> const& RotationAxis)
 	{
 		unsigned int Offset = 0;
 		for (size_t i = 0; i < VerticesCount; i++)
 		{
+
+			//TODO detta är kinda sussy, borde se över hur jag egentligen tänkt med detta..
+			//vektor borde också kunna erättas med en string inser jag också
 			float* NumberData = (float*)&VerticesData[Offset];
 			MBMath::MBVector3<float> VectorIntermediary(NumberData[0], NumberData[1], NumberData[2]);
 			VectorIntermediary.Rotate(DegreesToRotate, RotationAxis);
@@ -798,33 +801,33 @@ namespace MBGE
 		VAO.UnBind();
 		glCheckError();
 	}
-	void Mesh::SavePositions()
-	{
-		unsigned int Offset = 0;
-		SavedPositionData = std::vector<Vec3Data>(VerticesCount);
-		for (size_t i = 0; i < VerticesCount; i++)
-		{
-			Vec3Data NewPosition;
-			float* DataPointer = (float*)&VerticesData[Offset];
-			NewPosition.x = DataPointer[0];
-			NewPosition.y = DataPointer[1];
-			NewPosition.z = DataPointer[2];
-			SavedPositionData[i] = NewPosition;
-			Offset += VertexSize;
-		}
-	}
-	void Mesh::RestorePositions()
-	{
-		unsigned int Offset = 0;
-		for (size_t i = 0; i < VerticesCount; i++)
-		{
-			float* DataPointer = (float*)&VerticesData[Offset];
-			DataPointer[0] = SavedPositionData[i].x;
-			DataPointer[1] = SavedPositionData[i].y;
-			DataPointer[2] = SavedPositionData[i].z;
-			Offset += VertexSize;
-		}
-	}
+	//void Mesh::SavePositions()
+	//{
+	//	unsigned int Offset = 0;
+	//	SavedPositionData = std::vector<Vec3Data>(VerticesCount);
+	//	for (size_t i = 0; i < VerticesCount; i++)
+	//	{
+	//		Vec3Data NewPosition;
+	//		float* DataPointer = (float*)&VerticesData[Offset];
+	//		NewPosition.x = DataPointer[0];
+	//		NewPosition.y = DataPointer[1];
+	//		NewPosition.z = DataPointer[2];
+	//		SavedPositionData[i] = NewPosition;
+	//		Offset += VertexSize;
+	//	}
+	//}
+	//void Mesh::RestorePositions()
+	//{
+	//	unsigned int Offset = 0;
+	//	for (size_t i = 0; i < VerticesCount; i++)
+	//	{
+	//		float* DataPointer = (float*)&VerticesData[Offset];
+	//		DataPointer[0] = SavedPositionData[i].x;
+	//		DataPointer[1] = SavedPositionData[i].y;
+	//		DataPointer[2] = SavedPositionData[i].z;
+	//		Offset += VertexSize;
+	//	}
+	//}
 	void Mesh::TransformPositions(MBMath::MBMatrix4<float> Transformation)
 	{
 		unsigned int Offset = 0;

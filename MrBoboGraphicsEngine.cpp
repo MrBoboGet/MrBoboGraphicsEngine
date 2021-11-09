@@ -23,7 +23,7 @@ int main()
 	exit(0);
 	*/
 	//std::cout << std::filesystem::current_path() << std::endl;
-	std::filesystem::current_path(std::filesystem::current_path().parent_path().parent_path().parent_path());
+	//std::filesystem::current_path(std::filesystem::current_path().parent_path().parent_path().parent_path());
 	//std::cout << std::filesystem::current_path() << std::endl;
 	MBGE::MBGraphicsEngine GraphicEngine;
 

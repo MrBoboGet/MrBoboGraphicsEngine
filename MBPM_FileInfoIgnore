@@ -1,0 +1,14 @@
+Excludes:
+/.git/
+/.vs/
+/ExternalOuts/
+/LinuxPortable/
+/out/
+/TigerGraphicsEngine/
+/UtifallAtt/
+/WindowPortable/
+/Resources/Models/
+/JohanExe.zip
+/LinuxPortable.zip
+/MBGraphicsEngine.zip
+/CMakeSettings.json

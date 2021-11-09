@@ -6,5 +6,5 @@
 		"StaticRelease": "MBGraphicsEngine_SR",
 		"StaticDebug": "MBGraphicsEngine_SD"
 	},
-	"Dependancies":["MBUtility"]
+	"Dependancies":["MBUtility","gl3w","glfw","assimp","stb"]
 }

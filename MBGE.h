@@ -240,15 +240,15 @@ namespace MBGE
 		VertexBuffer Buffer;
 		ElementBufferObject ArrayObject;
 		Model* AssociatedModel = nullptr;
-		std::vector<Vec3Data> SavedPositionData = {};
+		//std::vector<Vec3Data> SavedPositionData = {};
 	public:
 		//TODO fixa faktiska copy semantic etc för mesh objektet
 		Mesh(int VerticesToLoadCount, int VertexToLoadSize, void* VertexToLoadData, int ArrayObjectSize, unsigned int* ArrayObjectData);
-		Mesh(void* MeshObject,std::vector<VertexAttributes> AttributeOrder, Model* ModelToBelong);
-		void Rotate(float DegressToRotate, MBMath::MBVector3<float> AxisToRotate);
+		Mesh(void* MeshObject,std::vector<VertexAttributes> const& AttributeOrder, Model* ModelToBelong);
+		void Rotate(float DegressToRotate, MBMath::MBVector3<float> const& AxisToRotate);
 		void Draw();
-		void SavePositions();
-		void RestorePositions();
+		//void SavePositions();
+		//void RestorePositions();
 		void TransformPositions(MBMath::MBMatrix4<float> Transformation);
 		unsigned int NumberOfVertices();
 		~Mesh();

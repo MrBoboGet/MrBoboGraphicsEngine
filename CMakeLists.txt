@@ -2,7 +2,13 @@ project(MBGraphicsEngine)
 set(PROJECT_NAME "MBGraphicsEngine")
 ##BEGIN MBPM_VARIABLES
 set(MBPM_DEPENDENCIES 
+	stb
+	assimp
+	irrxml
+	zlib
+	glfw
 	MBUtility
+	gl3w
 )
 set(MBPM_TARGET_EXTPACKET_LIBRARIES )
 set(MBPM_TARGET_COMPILE_OPTIONS )
@@ -116,6 +122,7 @@ set(COMMON_FILES ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 set(COMMON_DYNAMIC_LIBRARIES 
 )
 set(COMMON_STATIC_LIBRARIES 
+	opengl32
 )
 set(COMMON_LIBRARIES ${COMMON_STATIC_LIBRARIES} ${COMMON_DYNAMIC_LIBRARIES})
 
@@ -124,15 +131,19 @@ MBPM_ApplyTargetConfiguration("MBGraphicsEngine_SD" "STATIC" "DEBUG")
 target_compile_features("MBGraphicsEngine_SD" PRIVATE cxx_std_17)
 target_link_libraries("MBGraphicsEngine_SD" ${COMMON_LIBRARIES})
 target_include_directories("MBGraphicsEngine_SD" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/assimp/include/")
+target_include_directories("MBGraphicsEngine_SD" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/gl3w/include/")
 
 add_library(MBGraphicsEngine_SR STATIC ${COMMON_FILES})
 MBPM_ApplyTargetConfiguration("MBGraphicsEngine_SR" "STATIC" "RELEASE")
 target_compile_features("MBGraphicsEngine_SR" PRIVATE cxx_std_17)
 target_link_libraries("MBGraphicsEngine_SR" ${COMMON_LIBRARIES})
 target_include_directories("MBGraphicsEngine_SR" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/assimp/include/")
+target_include_directories("MBGraphicsEngine_SR" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/gl3w/include/")
 
-add_library(MBGETest STATIC ${COMMON_FILES} ${EXECUTABLE_FILES})
+add_executable(MBGETest ${COMMON_FILES} ${EXECUTABLE_FILES})
+target_include_directories("MBGETest" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/assimp/include/")
+target_include_directories("MBGETest" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/gl3w/include/")
 MBPM_ApplyTargetConfiguration("MBGETest" "STATIC" "RELEASE")
 target_compile_features("MBGETest" PRIVATE cxx_std_17)
 target_link_libraries("MBGETest" ${COMMON_LIBRARIES})
-target_include_directories("MBGETest" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/assimp/include/")
+MBPM_LinkTargetPacketLibraries("MBGETest")

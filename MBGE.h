@@ -283,9 +283,9 @@ namespace MBGE
 		Node() {};
 		Node(void* NodeData, Node* ParentNode,Model* ModelToBelong);
 		MBMath::MBMatrix4<float> GetLocalTransformation() { return(LocalTransformation); };
-		void Draw(MBMath::MBMatrix4<float> ParentrTransformation);
+		void Draw(MBMath::MBMatrix4<float> const& ParentrTransformation);
 		void DrawAnimation();
-		void UpdateBones(MBMath::MBMatrix4<float> ParentTransformation);
+		void UpdateBones(MBMath::MBMatrix4<float> const& ParentTransformation,ShaderProgram* ShaderToUpdate);
 		//kommer med detta behöva en egentlig copy constructor och etc
 	};
 	class Material
@@ -370,7 +370,7 @@ namespace MBGE
 		bool IsPlayingAnimation() { return(AnimationIsPlaying); };
 		double GetAnimationTimeInSec(){return(AnimationTime);};
 		MBMath::MBMatrix4<float> InverseGlobalMatrix = MBMath::MBMatrix4<float>();
-		std::vector<MBMath::MBMatrix4<float>> BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(100, MBMath::MBMatrix4<float>());
+		//std::vector<MBMath::MBMatrix4<float>> BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(100, MBMath::MBMatrix4<float>());
 		std::unordered_map<std::string, Bone> BoneMap = {};
 		std::string ModelShader = "";
 		MBGraphicsEngine* AssociatedEngine = nullptr;

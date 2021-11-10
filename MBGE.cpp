@@ -1296,7 +1296,7 @@ namespace MBGE
 				}
 			}
 		}
-		BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(BoneIndexCounter, MBMath::MBMatrix4<float>());
+		//BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(BoneIndexCounter, MBMath::MBMatrix4<float>());
 		//lägger till nodes, populatar ben data som meshesen behöver
 		TopNode = Node(LoadedScene->mRootNode, nullptr, this);
 		InverseGlobalMatrix = TopNode.GetLocalTransformation().GetMatrixData().InvertedMatrix();
@@ -1677,16 +1677,19 @@ namespace MBGE
 			}
 			AssociatedModel->AssociatedEngine->CameraObject.SetModelMatrix(MBMath::MBMatrix4<float>());
 			AssociatedModel->AssociatedEngine->CameraObject.Update();
+
+			//TODO temp grejer
+			ShaderProgram* ShaderToUpdate = AssociatedModel->AssociatedEngine->GetCurrentShader();
 			for (size_t i = 0; i < ChildNodes.size(); i++)
 			{
-				ChildNodes[i].UpdateBones(NodeTransformation);
+				ChildNodes[i].UpdateBones(NodeTransformation,ShaderToUpdate);
 			}
 			//nu tar vi och faktiskt uppdaterar våran shader
 			ShaderProgram* CurrentShader = AssociatedModel->AssociatedEngine->GetCurrentShader();
-			for (size_t i = 0; i < AssociatedModel->BoneOffsetList.size(); i++)
-			{
-				CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(i) + "]", AssociatedModel->BoneOffsetList[i].GetContinousDataPointer());
-			}
+			//for (size_t i = 0; i < AssociatedModel->BoneOffsetList.size(); i++)
+			//{
+			//	CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(i) + "]", AssociatedModel->BoneOffsetList[i].GetContinousDataPointer());
+			//}
 		}
 		//tar tar vi och faktiskt ritar våra fina meshes
 		for (size_t i = 0; i < MeshIndexes.size(); i++)
@@ -1699,7 +1702,7 @@ namespace MBGE
 			ChildNodes[i].DrawAnimation();
 		}
 	}
-	void Node::UpdateBones(MBMath::MBMatrix4<float> ParentTransformation)
+	void Node::UpdateBones(MBMath::MBMatrix4<float> const& ParentTransformation,ShaderProgram* ShaderToUpdate)
 	{
 		ModelAnimation* CurrentAnimation = AssociatedModel->GetCurrentAnimation();
 		MBMath::MBMatrix4<float> NodeTransformation = ParentTransformation;
@@ -1718,15 +1721,16 @@ namespace MBGE
 		{
 			Bone* AssociatedBone = &AssociatedModel->BoneMap[NodeID];
 			MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
-			AssociatedModel->BoneOffsetList[AssociatedBone->BoneIndex] = BoneTransform;
+			ShaderToUpdate->SetUniformMat4f("BoneTransforms[" + std::to_string(AssociatedBone->BoneIndex) + "]", BoneTransform.GetContinousDataPointer());
+			//AssociatedModel->BoneOffsetList[AssociatedBone->BoneIndex] = BoneTransform;
 			//std::cout << BoneTransform << std::endl;
 		}
 		for (size_t i = 0; i < ChildNodes.size(); i++)
 		{
-			ChildNodes[i].UpdateBones(NodeTransformation);
+			ChildNodes[i].UpdateBones(NodeTransformation,ShaderToUpdate);
 		}
 	}
-	void Node::Draw(MBMath::MBMatrix4<float> ParentTransformation)
+	void Node::Draw(MBMath::MBMatrix4<float> const& ParentTransformation)
 	{
 		MBMath::MBMatrix4<float> ModelMatrix = LocalTransformation* ParentTransformation;
 		//MBMath::MBMatrix4<float> ModelMatrix = MBMath::MBMatrix4<float>();

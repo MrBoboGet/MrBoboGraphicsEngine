@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <time.h>
 #include <thread>
+#include <cstdint>
 #define MBGE_BASE_TYPE double 
 class GLFWwindow;
 #define MBGE_BONEPERVERTEX 5
@@ -219,7 +220,7 @@ namespace MBGE
 
 	public:
 		std::string BoneID = "";
-		int BoneIndex = -1;
+		size_t BoneIndex = -1;
 		MBMath::MBMatrix4<float> OffsetMatrix = MBMath::MBMatrix4<float>();
 		std::vector<BoneWeight> Weights = {};
 		Bone(void* AssimpBoneData);
@@ -254,20 +255,27 @@ namespace MBGE
 		~Mesh();
 	};
 	//TODO skapa copysemantics och liknande för nod objektet, är shallow copy just nu
+	class NodeAnimation;
+	class SkeletonAnimation;
 	class Node
 	{
 	private:
 		Node* ParentNode = nullptr;
 		std::vector<Node> ChildNodes = {};
-		std::vector<unsigned int> MeshIndexes = {};
-		MBMath::MBMatrix4<float> LocalTransformation = MBMath::MBMatrix4<float>();
-		Model* AssociatedModel = nullptr;
+		size_t m_NumberOfChildren = 0;
+		size_t m_NodeIndex = 0;
 		std::string NodeID = "";
 		void Swap(Node& OtherNode);
 
 		void p_UpdateChildParents();
+		void p_FillDefaultTransformations(std::vector<MBMath::MBMatrix4<float>>& VectorToFill,MBMath::MBMatrix4<float> const& CurrentTransform);
+		void p_FillAnimationTransformations(std::vector<MBMath::MBMatrix4<float>>& VectorToFill,MBMath::MBMatrix4<float> const& CurrentTransform,SkeletonAnimation const& NodeAnimation, double AnimationTime);
+		Node(void* AssimpData, Node* ParentNode, size_t* NumberOfChildren);
+		void p_FillNodeIDMap(std::unordered_map<std::string, size_t>& MapToFill);
 	public:
 		Node(Node const& OtherNode) = delete;
+		std::vector<size_t> MeshIndexes = {};
+		MBMath::MBMatrix4<float> LocalTransformation = MBMath::MBMatrix4<float>();
 
 		Node& operator=(Node OtherNode) noexcept
 		{
@@ -281,11 +289,21 @@ namespace MBGE
 			p_UpdateChildParents();
 		}
 		Node() {};
-		Node(void* NodeData, Node* ParentNode,Model* ModelToBelong);
+		Node(void* AssimpData);
+
 		MBMath::MBMatrix4<float> GetLocalTransformation() { return(LocalTransformation); };
 		void Draw(MBMath::MBMatrix4<float> const& ParentrTransformation);
-		void DrawAnimation();
-		void UpdateBones(MBMath::MBMatrix4<float> const& ParentTransformation,ShaderProgram* ShaderToUpdate);
+		void DrawAnimation(SkeletonAnimation const& NodeAnimation,ShaderProgram* ShaderToUpdate,double AnimationTime);
+
+
+
+		std::vector<MBMath::MBMatrix4<float>> GetDefaultTransformations();
+		std::vector<MBMath::MBMatrix4<float>> GetAnimationTransformations(SkeletonAnimation const& NodeAnimation,double AnimationTime);
+		std::vector<Node> const& GetChildren() const; //Experimentel
+		size_t GetNumberOfChildren();
+		std::unordered_map<std::string, size_t> GetNodeIDMap();
+
+		void UpdateBones(MBMath::MBMatrix4<float> const& ParentTransformation,SkeletonAnimation const& AnimationToUse,double AnimationTime,ShaderProgram* ShaderToUpdate);
 		//kommer med detta behöva en egentlig copy constructor och etc
 	};
 	class Material
@@ -327,23 +345,33 @@ namespace MBGE
 		std::vector<NodeAnimationScalingKey> ScalingKeys = {};
 		std::vector<NodeAnimationRotationKey> RotationKeys = {};
 		std::vector<NodeAnimationPositionKey> TranslationKeys = {};
-		MBMath::MBMatrix4<float> GetInterpolatedScaling(float TimeInSec);
-		MBMath::MBMatrix4<float> GetInterpolatedRotation(float TimeInSec);
-		MBMath::MBMatrix4<float> GetInterpolatedTranslation(float TimeInSec);
+		MBMath::MBMatrix4<float> GetInterpolatedScaling(float TimeInSec) const;
+		MBMath::MBMatrix4<float> GetInterpolatedRotation(float TimeInSec) const;
+		MBMath::MBMatrix4<float> GetInterpolatedTranslation(float TimeInSec) const;
 	public:
 		NodeAnimation(void* AssimpData, double AnimationDuration, double TicksPerSec);
-		MBMath::MBMatrix4<float> GetTransformation(float TimeInSec);
+		MBMath::MBMatrix4<float> GetTransformation(float TimeInSec) const;
 		NodeAnimation() {};
+	};
+	class SkeletonAnimation
+	{
+		std::unordered_map<std::string, NodeAnimation> m_NodeAnimations = {};
+	public:
+		SkeletonAnimation() {};
+		SkeletonAnimation(std::unordered_map<std::string, NodeAnimation>&& Data) { m_NodeAnimations = Data; };
+		bool IsInAnimation(std::string const& StringToCheck) const;
+		MBMath::MBMatrix4<float> GetNodeTransformation(std::string const& NodeID, double TimeInSec) const;
 	};
 	class ModelAnimation
 	{
 	private:
 		double TickDuration = 0;
 		double TicksPerSec = 0;
-		std::unordered_map<std::string,NodeAnimation> NodeAnimations = {};
+		//std::unordered_map<std::string,NodeAnimation> NodeAnimations = {};
 	public:
-		bool IsInAnimation(std::string NodeID) { return(NodeAnimations.find(NodeID) != NodeAnimations.end()); };
-		MBMath::MBMatrix4<float> GetNodeTransformation(float TimeInSec, std::string NodeId);
+		SkeletonAnimation BoneAnimation;
+		//bool IsInAnimation(std::string NodeID) { return(BoneAnimation.IsInAnimation(NodeID)); };
+		//MBMath::MBMatrix4<float> GetNodeTransformation(float TimeInSec, std::string NodeId);
 		double GetDurationInSec() { return(TickDuration / TicksPerSec); };
 		ModelAnimation(void* AssimpData);
 	};
@@ -363,17 +391,23 @@ namespace MBGE
 		bool AnimationIsPlaying = false;
 		double AnimationTime = 0;
 		std::vector<ModelAnimation> Animations = {};
+		void p_DrawAnimation(ModelAnimation const& ModelAnimationToDraw,ShaderProgram* ShaderToUse, double AnimationTimeInSec);
+		void p_DrawDefault();
+		void p_DrawDefault_Node(const Node* NodeToProcess, MBMath::MBMatrix4<float> ParentTransformation);
 	public:
-		int NumberOfNodes = 0;
+		size_t NumberOfNodes = 0;
+
 		std::vector<std::string> NodeNames = {};
-		ModelAnimation* GetCurrentAnimation();
-		bool IsPlayingAnimation() { return(AnimationIsPlaying); };
-		double GetAnimationTimeInSec(){return(AnimationTime);};
+		
 		MBMath::MBMatrix4<float> InverseGlobalMatrix = MBMath::MBMatrix4<float>();
-		//std::vector<MBMath::MBMatrix4<float>> BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(100, MBMath::MBMatrix4<float>());
 		std::unordered_map<std::string, Bone> BoneMap = {};
 		std::string ModelShader = "";
 		MBGraphicsEngine* AssociatedEngine = nullptr;
+
+
+		ModelAnimation* GetCurrentAnimation();
+		bool IsPlayingAnimation() { return(AnimationIsPlaying); };
+		double GetAnimationTimeInSec() { return(AnimationTime); };
 		void Rotate(float DegressToRotate, MBMath::MBVector3<float> AxisToRotate);
 		void Draw();
 		Mesh* GetMesh(unsigned int MeshIndex);

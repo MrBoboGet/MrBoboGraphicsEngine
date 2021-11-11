@@ -11,6 +11,7 @@
 #include <stb/stb_image.h>
 #include <assert.h>
 #include <filesystem>
+#include <stack>
 
 
 GLenum glCheckError_(const char* file, int line)
@@ -1001,7 +1002,7 @@ namespace MBGE
 		}
 	}
 	//NodeAnimation
-	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedRotation(float TimeInSec)
+	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedRotation(float TimeInSec) const
 	{
 		//vi ser vad som händer om vi kör ingen interpolering
 		NodeAnimationRotationKey LowerKey;
@@ -1051,7 +1052,7 @@ namespace MBGE
 		MBMath::MBMatrix4<float> ReturnValue = MBMath::MBMatrix4<float>(NewRotation.GetRotationMatrix());
 		return(ReturnValue);
 	}
-	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedScaling(float TimeInSec)
+	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedScaling(float TimeInSec) const
 	{
 		NodeAnimationScalingKey LowerKey;
 		NodeAnimationScalingKey HigherKey;
@@ -1103,7 +1104,7 @@ namespace MBGE
 		ReturnValue(2, 2) = NewScale[2];
 		return(ReturnValue);
 	}
-	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedTranslation(float TimeInSec)
+	MBMath::MBMatrix4<float> NodeAnimation::GetInterpolatedTranslation(float TimeInSec) const
 	{
 		NodeAnimationPositionKey LowerKey;
 		NodeAnimationPositionKey HigherKey;
@@ -1189,27 +1190,41 @@ namespace MBGE
 			RotationKeys.push_back(NewRotationKey);
 		}
 	}
-	MBMath::MBMatrix4<float> NodeAnimation::GetTransformation(float TimeInSec)
+	MBMath::MBMatrix4<float> NodeAnimation::GetTransformation(float TimeInSec) const
 	{
 		MBMath::MBMatrix4<float> ReturnValue = GetInterpolatedTranslation(TimeInSec) * GetInterpolatedRotation(TimeInSec) * GetInterpolatedScaling(TimeInSec);
 		return(ReturnValue);
 	}
+	//BEGIN SkeletonAnimation
+
+	bool SkeletonAnimation::IsInAnimation(std::string const& StringToCheck) const
+	{
+		return(m_NodeAnimations.find(StringToCheck) != m_NodeAnimations.end());
+	}
+	MBMath::MBMatrix4<float> SkeletonAnimation::GetNodeTransformation(std::string const& NodeID, double TimeInSec) const
+	{
+		return(m_NodeAnimations.at(NodeID).GetTransformation(TimeInSec));
+	}
+	//END SkeletionAnimation
+
 	//ModelAnimation
 	ModelAnimation::ModelAnimation(void* AssimpData)
 	{
 		aiAnimation* AssimpAnimation = (aiAnimation*)AssimpData;
 		TicksPerSec = AssimpAnimation->mTicksPerSecond;
 		TickDuration = AssimpAnimation->mDuration;
+		std::unordered_map<std::string, NodeAnimation> AnimationData = {};
 		for (size_t i = 0; i < AssimpAnimation->mNumChannels; i++)
 		{
-			NodeAnimations[std::string(AssimpAnimation->mChannels[i]->mNodeName.C_Str())] = NodeAnimation(AssimpAnimation->mChannels[i],AssimpAnimation->mDuration,AssimpAnimation->mTicksPerSecond);
+			AnimationData[std::string(AssimpAnimation->mChannels[i]->mNodeName.C_Str())] = NodeAnimation(AssimpAnimation->mChannels[i],AssimpAnimation->mDuration,AssimpAnimation->mTicksPerSecond);
 		}
+		BoneAnimation = SkeletonAnimation(std::move(AnimationData));
 	}
-	MBMath::MBMatrix4<float> ModelAnimation::GetNodeTransformation(float TimeInSec,std::string Node)
-	{
-		NodeAnimation AssociatedNodeTransformation = NodeAnimations[Node];
-		return(AssociatedNodeTransformation.GetTransformation(TimeInSec));
-	}
+	//MBMath::MBMatrix4<float> ModelAnimation::GetNodeTransformation(float TimeInSec,std::string Node)
+	//{
+	//	NodeAnimation AssociatedNodeTransformation = NodeAnimations[Node];
+	//	return(AssociatedNodeTransformation.GetTransformation(TimeInSec));
+	//}
 	//Model
 	void Model::Rotate(float DegreesToRotate, MBMath::MBVector3<float> RotationAxis)
 	{
@@ -1247,7 +1262,8 @@ namespace MBGE
 		}
 		std::cout << "Number of Triangels "<<NumberOfTriangels/3<<std::endl;
 		//lägger till nodes
-		TopNode = Node(LoadedScene->mRootNode, nullptr,this);
+		TopNode = Node(LoadedScene->mRootNode);
+		NumberOfNodes = TopNode.GetNumberOfChildren() + 1;
 		//lägger till materials
 		unsigned int NumberOfMaterials = LoadedScene->mNumMaterials;
 		for (size_t i = 0; i < NumberOfMaterials; i++)
@@ -1298,7 +1314,8 @@ namespace MBGE
 		}
 		//BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(BoneIndexCounter, MBMath::MBMatrix4<float>());
 		//lägger till nodes, populatar ben data som meshesen behöver
-		TopNode = Node(LoadedScene->mRootNode, nullptr, this);
+		TopNode = Node(LoadedScene->mRootNode);
+		NumberOfNodes = TopNode.GetNumberOfChildren() + 1;
 		InverseGlobalMatrix = TopNode.GetLocalTransformation().GetMatrixData().InvertedMatrix();
 		//lägger till animationer
 		for (size_t i = 0; i < LoadedScene->mNumAnimations; i++)
@@ -1331,29 +1348,80 @@ namespace MBGE
 	{
 		return(&ModelMaterials[MaterialIndex]);
 	}
+	void Model::p_DrawAnimation(ModelAnimation const& ModelAnimationToDraw,ShaderProgram* ShaderToUse, double AnimationTimeInSec)
+	{
+		std::vector<MBMath::MBMatrix4<float>> Transformations = TopNode.GetAnimationTransformations(ModelAnimationToDraw.BoneAnimation, AnimationTimeInSec);
+		std::unordered_map<std::string, size_t> NodeIDMap = TopNode.GetNodeIDMap();
+		AssociatedEngine->CameraObject.SetModelMatrix(MBMath::MBMatrix4<float>());
+		AssociatedEngine->CameraObject.Update();
+		MBMath::MBMatrix4<float> StandardMatrix = MBMath::MBMatrix4<float>();
+		ShaderToUse->SetUniformMat4f("BoneTransforms[0]", StandardMatrix.GetContinousDataPointer());
+		for (auto const& CurrentBone : BoneMap)
+		{
+			size_t TransformationIndex = NodeIDMap[CurrentBone.second.BoneID];
+			//MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
+			MBMath::MBMatrix4<float> NewTransformation = InverseGlobalMatrix * Transformations[TransformationIndex] * CurrentBone.second.OffsetMatrix;
+			ShaderToUse->SetUniformMat4f("BoneTransforms[" + std::to_string(CurrentBone.second.BoneIndex) + "]",NewTransformation.GetContinousDataPointer());
+		}
+		//Bonesen är uppdaterade, nu till rita alla meshes
+		for (size_t i = 0; i < ModelMeshes.size(); i++)
+		{
+			ModelMeshes[i]->Draw();
+		}
+	}
+	void Model::p_DrawDefault()
+	{
+		//std::vector<MBMath::MBMatrix4<float>> Transformations = TopNode.GetDefaultTransformations();
+		ShaderProgram* CurrentShader = AssociatedEngine->GetCurrentShader();
+		MBMath::MBMatrix4<float> DefaultMatrix = MBMath::MBMatrix4<float>();
+		for (auto const& CurrentBone : BoneMap)
+		{
+			CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(CurrentBone.second.BoneIndex) + "]", DefaultMatrix.GetContinousDataPointer());
+		}
+		p_DrawDefault_Node(&TopNode, MBMath::MBMatrix4<float>());
+	}
+	void Model::p_DrawDefault_Node(const Node* NodeToProcess, MBMath::MBMatrix4<float> ParentTransformation)
+	{
+		MBMath::MBMatrix4<float> ModelMatrix = NodeToProcess->LocalTransformation * ParentTransformation;
+		if (NodeToProcess->MeshIndexes.size() > 0)
+		{
+			AssociatedEngine->CameraObject.SetModelMatrix(ModelMatrix);
+			AssociatedEngine->CameraObject.Update();
+		}
+		for (size_t i = 0; i < NodeToProcess->MeshIndexes.size(); i++)
+		{
+			Mesh* MeshToDraw = GetMesh(NodeToProcess->MeshIndexes[i]);
+			MeshToDraw->Draw();
+		}
+		std::vector<Node> const& NodeChildren = NodeToProcess->GetChildren();
+		for (size_t i = 0; i < NodeToProcess->GetChildren().size(); i++)
+		{
+			p_DrawDefault_Node(&NodeChildren[i], ModelMatrix);
+		}
+	}
 	void Model::Draw()
 	{
 		//vi callar helt enkelt nodens draw funktion, som ritar grejen rekursivt
 		//TODO optimera så vi inte behöver getta shadern varje frame
 		AssociatedEngine->SetCurrentShader(ModelShader);
 		if (BoneMap.size() != 0)
+		//if (true)
 		{
 			AnimationIsPlaying = true;
 			AnimationTime += AssociatedEngine->GetDeltaTimeInSec();
+
 			ModelAnimation* CurrentAnimation = GetCurrentAnimation();
 			if (AnimationTime > CurrentAnimation->GetDurationInSec())
 			{
 				AnimationTime = 0;
 			}
-			//AnimationTime = 0.001;
-			//för debugging
-			//AnimationTime = 0.001;
-			//vi kör "Draw
-			TopNode.DrawAnimation();
+			p_DrawAnimation(*CurrentAnimation, AssociatedEngine->GetShader(ModelShader),AnimationTime);
+			//TopNode.DrawAnimation(CurrentAnimation->BoneAnimation,AssociatedEngine->GetShader(ModelShader),AnimationTime);
 		}
 		else
 		{
-			TopNode.Draw(MBMath::MBMatrix4<float>());
+			//TopNode.Draw(MBMath::MBMatrix4<float>());
+			p_DrawDefault();
 		}
 	}
 	//framebuffer
@@ -1626,8 +1694,10 @@ namespace MBGE
 		std::swap(ChildNodes, OtherNode.ChildNodes);
 		std::swap(MeshIndexes, OtherNode.MeshIndexes);
 		std::swap(LocalTransformation, OtherNode.LocalTransformation);
-		std::swap(AssociatedModel, OtherNode.AssociatedModel);
+		//std::swap(AssociatedModel, OtherNode.AssociatedModel);
 		std::swap(NodeID, OtherNode.NodeID);
+		std::swap(m_NodeIndex, OtherNode.m_NodeIndex);
+		std::swap(m_NumberOfChildren, OtherNode.m_NumberOfChildren);
 	}
 	void Node::p_UpdateChildParents()
 	{
@@ -1637,14 +1707,16 @@ namespace MBGE
 			ChildNodes[i].p_UpdateChildParents();
 		}
 	}
-	Node::Node(void* NodeData, Node* NewParentNode, Model* ModelToBelong)
+
+	Node::Node(void* NodeData, Node* NewParentNode,size_t* TotalNumberOfNodes )
 	{
-		AssociatedModel = ModelToBelong;
+		//AssociatedModel = ModelToBelong;
+		size_t PreviousNodeCount = *TotalNumberOfNodes;
+		m_NodeIndex = PreviousNodeCount;
 		ParentNode = NewParentNode;
-		AssociatedModel->NumberOfNodes += 1;
 		aiNode* AssimpNode = (aiNode*)NodeData;
 		NodeID = std::string(AssimpNode->mName.C_Str());
-		AssociatedModel->NodeNames.push_back(NodeID);
+		//AssociatedModel->NodeNames.push_back(NodeID);
 		MeshIndexes.reserve(AssimpNode->mNumMeshes);
 		for (size_t i = 0; i < AssimpNode->mNumMeshes; i++)
 		{
@@ -1660,95 +1732,183 @@ namespace MBGE
 		}
 		for (size_t i = 0; i < AssimpNode->mNumChildren; i++)
 		{
-			Node NewNode = Node(AssimpNode->mChildren[i],this, ModelToBelong);
+			*TotalNumberOfNodes += 1;
+			Node NewNode = Node(AssimpNode->mChildren[i],this, TotalNumberOfNodes);
 			ChildNodes.push_back(std::move(NewNode));
 		}
+		m_NumberOfChildren = *TotalNumberOfNodes-PreviousNodeCount;
 	}
-	void Node::DrawAnimation()
+	Node::Node(void* AssimpData)
 	{
-		if (ParentNode == nullptr)
-		{
-			//behövs den här ens?
-			ModelAnimation* CurrentAnimation = AssociatedModel->GetCurrentAnimation();
-			MBMath::MBMatrix4<float> NodeTransformation = LocalTransformation;
-			if (CurrentAnimation->IsInAnimation(NodeID) && NodeID != "")
-			{
-				NodeTransformation = CurrentAnimation->GetNodeTransformation(AssociatedModel->GetAnimationTimeInSec(), NodeID);
-			}
-			AssociatedModel->AssociatedEngine->CameraObject.SetModelMatrix(MBMath::MBMatrix4<float>());
-			AssociatedModel->AssociatedEngine->CameraObject.Update();
-
-			//TODO temp grejer
-			ShaderProgram* ShaderToUpdate = AssociatedModel->AssociatedEngine->GetCurrentShader();
-			for (size_t i = 0; i < ChildNodes.size(); i++)
-			{
-				ChildNodes[i].UpdateBones(NodeTransformation,ShaderToUpdate);
-			}
-			//nu tar vi och faktiskt uppdaterar våran shader
-			ShaderProgram* CurrentShader = AssociatedModel->AssociatedEngine->GetCurrentShader();
-			//for (size_t i = 0; i < AssociatedModel->BoneOffsetList.size(); i++)
-			//{
-			//	CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(i) + "]", AssociatedModel->BoneOffsetList[i].GetContinousDataPointer());
-			//}
-		}
-		//tar tar vi och faktiskt ritar våra fina meshes
-		for (size_t i = 0; i < MeshIndexes.size(); i++)
-		{
-			Mesh* MeshToDraw = AssociatedModel->GetMesh(MeshIndexes[i]);
-			MeshToDraw->Draw();
-		}
-		for (size_t i = 0; i < ChildNodes.size(); i++)
-		{
-			ChildNodes[i].DrawAnimation();
-		}
+		size_t TotalNumberOfNodes = 0;
+		*this = Node(AssimpData, nullptr, &TotalNumberOfNodes);
 	}
-	void Node::UpdateBones(MBMath::MBMatrix4<float> const& ParentTransformation,ShaderProgram* ShaderToUpdate)
+	size_t Node::GetNumberOfChildren()
 	{
-		ModelAnimation* CurrentAnimation = AssociatedModel->GetCurrentAnimation();
+		return(m_NumberOfChildren);
+	}
+	std::vector<Node> const& Node::GetChildren() const
+	{
+		return(ChildNodes);
+	}
+	void Node::DrawAnimation(SkeletonAnimation const& CurrentAnimation,ShaderProgram* ShaderToUpdate,double AnimationTime)
+	{
+		//if (ParentNode == nullptr)
+		//{
+		//	//behövs den här ens?
+		//	//ModelAnimation* CurrentAnimation = AssociatedModel->GetCurrentAnimation();
+		//	
+		//	
+		//	MBMath::MBMatrix4<float> NodeTransformation = LocalTransformation;
+		//	
+		//	
+		//	if (CurrentAnimation.IsInAnimation(NodeID) && NodeID != "")
+		//	{
+		//		NodeTransformation = CurrentAnimation.GetNodeTransformation(NodeID,AnimationTime);
+		//	}
+		//
+		//	//OBS global konfiguerad data som ska tas hand om av modelen
+		//	//AssociatedModel->AssociatedEngine->CameraObject.SetModelMatrix(MBMath::MBMatrix4<float>());
+		//	//AssociatedModel->AssociatedEngine->CameraObject.Update();
+		//
+		//	//TODO temp grejer
+		//	//ShaderProgram* ShaderToUpdate = AssociatedModel->AssociatedEngine->GetCurrentShader();
+		//	for (size_t i = 0; i < ChildNodes.size(); i++)
+		//	{
+		//		ChildNodes[i].UpdateBones(NodeTransformation, ShaderToUpdate);
+		//	}
+		//	//nu tar vi och faktiskt uppdaterar våran shader
+		//	//ShaderProgram* CurrentShader = AssociatedModel->AssociatedEngine->GetCurrentShader();
+		//	//for (size_t i = 0; i < AssociatedModel->BoneOffsetList.size(); i++)
+		//	//{
+		//	//	CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(i) + "]", AssociatedModel->BoneOffsetList[i].GetContinousDataPointer());
+		//	//}
+		//}
+		////tar tar vi och faktiskt ritar våra fina meshes
+		//for (size_t i = 0; i < MeshIndexes.size(); i++)
+		//{
+		//	Mesh* MeshToDraw = AssociatedModel->GetMesh(MeshIndexes[i]);
+		//	MeshToDraw->Draw();
+		//}
+		//for (size_t i = 0; i < ChildNodes.size(); i++)
+		//{
+		//	ChildNodes[i].DrawAnimation(CurrentAnimation,AnimationTime);
+		//}
+	}
+	void Node::UpdateBones(MBMath::MBMatrix4<float> const& ParentTransformation,SkeletonAnimation const& CurrentAnimation,double AnimationTime,ShaderProgram* ShaderToUpdate)
+	{
+		//ModelAnimation* CurrentAnimation = AssociatedModel->GetCurrentAnimation();
 		MBMath::MBMatrix4<float> NodeTransformation = ParentTransformation;
 		//nu uppdaterar vi faktiskt benet
-		if (CurrentAnimation->IsInAnimation(NodeID) && NodeID != "")
+		if (CurrentAnimation.IsInAnimation(NodeID) && NodeID != "")
 		{
 			//NodeTransformation = NodeTransformation * CurrentAnimation->GetNodeTransformation(AssociatedModel->GetAnimationTimeInSec(), NodeID);
 			//NodeTransformation = ParentTransformation * LocalTransformation; verifierat att det fungerar med default posen
-			NodeTransformation = NodeTransformation * CurrentAnimation->GetNodeTransformation(AssociatedModel->GetAnimationTimeInSec(), NodeID);
+			NodeTransformation = NodeTransformation * CurrentAnimation.GetNodeTransformation(NodeID, AnimationTime);
 		}
 		else
 		{
 			NodeTransformation = NodeTransformation*LocalTransformation;
 		}
-		if (AssociatedModel->BoneMap.find(NodeID) != AssociatedModel->BoneMap.end())
-		{
-			Bone* AssociatedBone = &AssociatedModel->BoneMap[NodeID];
-			MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
-			ShaderToUpdate->SetUniformMat4f("BoneTransforms[" + std::to_string(AssociatedBone->BoneIndex) + "]", BoneTransform.GetContinousDataPointer());
-			//AssociatedModel->BoneOffsetList[AssociatedBone->BoneIndex] = BoneTransform;
-			//std::cout << BoneTransform << std::endl;
-		}
+		//if (AssociatedModel->BoneMap.find(NodeID) != AssociatedModel->BoneMap.end())
+		//{
+		//	Bone* AssociatedBone = &AssociatedModel->BoneMap[NodeID];
+		//	MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
+		//	ShaderToUpdate->SetUniformMat4f("BoneTransforms[" + std::to_string(AssociatedBone->BoneIndex) + "]", BoneTransform.GetContinousDataPointer());
+		//	//AssociatedModel->BoneOffsetList[AssociatedBone->BoneIndex] = BoneTransform;
+		//	//std::cout << BoneTransform << std::endl;
+		//}
 		for (size_t i = 0; i < ChildNodes.size(); i++)
 		{
-			ChildNodes[i].UpdateBones(NodeTransformation,ShaderToUpdate);
+			//ChildNodes[i].UpdateBones(NodeTransformation,ShaderToUpdate);
+		}
+	}
+	void Node::p_FillDefaultTransformations(std::vector<MBMath::MBMatrix4<float>>& VectorToFill, MBMath::MBMatrix4<float> const& CurrentTransform)
+	{
+		//finns något sussy här, här gör vi i den här ordningen medan i p_FillAnimationTransformations så gör vi andra...
+		//tror knappast vi kan anta att det alltid permuterar? får checka med fler models om det stämmer
+		MBMath::MBMatrix4<float> ModelMatrix = LocalTransformation * CurrentTransform;
+		VectorToFill[m_NodeIndex] = ModelMatrix;
+		for (size_t i = 0; i <ChildNodes.size(); i++)
+		{
+			ChildNodes[i].p_FillDefaultTransformations(VectorToFill, ModelMatrix);
+		}
+	}
+	void Node::p_FillAnimationTransformations(std::vector<MBMath::MBMatrix4<float>>& VectorToFill,MBMath::MBMatrix4<float> const& CurrentTransform, SkeletonAnimation const& ParentTransformation, double AnimationTime)
+	{
+		//ModelAnimation* CurrentAnimation = AssociatedModel->GetCurrentAnimation();
+		MBMath::MBMatrix4<float> NodeTransformation = CurrentTransform;
+		//nu uppdaterar vi faktiskt benet
+		if (ParentTransformation.IsInAnimation(NodeID) && NodeID != "")
+		{
+			//NodeTransformation = NodeTransformation * CurrentAnimation->GetNodeTransformation(AssociatedModel->GetAnimationTimeInSec(), NodeID);
+			//NodeTransformation = ParentTransformation * LocalTransformation; verifierat att det fungerar med default posen
+			NodeTransformation = NodeTransformation * ParentTransformation.GetNodeTransformation(NodeID, AnimationTime);
+		}
+		else
+		{
+			NodeTransformation = NodeTransformation * LocalTransformation;
+		}
+		VectorToFill[m_NodeIndex] = NodeTransformation;
+		//if (AssociatedModel->BoneMap.find(NodeID) != AssociatedModel->BoneMap.end())
+		//{
+		//	Bone* AssociatedBone = &AssociatedModel->BoneMap[NodeID];
+		//	MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
+		//	ShaderToUpdate->SetUniformMat4f("BoneTransforms[" + std::to_string(AssociatedBone->BoneIndex) + "]", BoneTransform.GetContinousDataPointer());
+		//	//AssociatedModel->BoneOffsetList[AssociatedBone->BoneIndex] = BoneTransform;
+		//	//std::cout << BoneTransform << std::endl;
+		//}
+		for (size_t i = 0; i < ChildNodes.size(); i++)
+		{
+			ChildNodes[i].p_FillAnimationTransformations(VectorToFill,NodeTransformation,ParentTransformation, AnimationTime);
+		}
+	}
+	std::vector<MBMath::MBMatrix4<float>> Node::GetDefaultTransformations()
+	{
+		std::vector<MBMath::MBMatrix4<float>> ReturnValue = std::vector<MBMath::MBMatrix4<float>>(m_NumberOfChildren + 1, MBMath::MBMatrix4<float>());
+		p_FillDefaultTransformations(ReturnValue, MBMath::MBMatrix4<float>());
+		return(ReturnValue);
+	}
+	std::vector<MBMath::MBMatrix4<float>> Node::GetAnimationTransformations(SkeletonAnimation const& CurrentAnimation, double AnimationTime)
+	{
+		std::vector<MBMath::MBMatrix4<float>> ReturnValue = std::vector<MBMath::MBMatrix4<float>>(m_NumberOfChildren + 1, MBMath::MBMatrix4<float>());
+		p_FillAnimationTransformations(ReturnValue, MBMath::MBMatrix4<float>(), CurrentAnimation, AnimationTime);
+		return(ReturnValue);
+	}
+	std::unordered_map<std::string, size_t> Node::GetNodeIDMap()
+	{
+		std::unordered_map<std::string, size_t> ReturnValue;
+		p_FillNodeIDMap(ReturnValue);
+		return(ReturnValue);
+	}
+	void Node::p_FillNodeIDMap(std::unordered_map<std::string, size_t>& MapToFill)
+	{
+		MapToFill[NodeID] = m_NodeIndex;
+		for (size_t i = 0; i < ChildNodes.size(); i++)
+		{
+			ChildNodes[i].p_FillNodeIDMap(MapToFill);
 		}
 	}
 	void Node::Draw(MBMath::MBMatrix4<float> const& ParentTransformation)
 	{
-		MBMath::MBMatrix4<float> ModelMatrix = LocalTransformation* ParentTransformation;
-		//MBMath::MBMatrix4<float> ModelMatrix = MBMath::MBMatrix4<float>();
-		if (MeshIndexes.size() > 0)
-		{
-			//uppdaterar kameran och modell matrixen
-			AssociatedModel->AssociatedEngine->CameraObject.SetModelMatrix(ModelMatrix);
-			AssociatedModel->AssociatedEngine->CameraObject.Update();
-		}
-		for (size_t i = 0; i < MeshIndexes.size(); i++)
-		{
-			Mesh* MeshToDraw = AssociatedModel->GetMesh(MeshIndexes[i]);
-			MeshToDraw->Draw();
-		}
-		for (size_t i = 0; i < ChildNodes.size(); i++)
-		{
-			ChildNodes[i].Draw(ModelMatrix);
-		}
+		//MBMath::MBMatrix4<float> ModelMatrix = LocalTransformation* ParentTransformation;
+		////MBMath::MBMatrix4<float> ModelMatrix = MBMath::MBMatrix4<float>();
+		//if (MeshIndexes.size() > 0)
+		//{
+		//	//uppdaterar kameran och modell matrixen
+		//
+		//	//AssociatedModel->AssociatedEngine->CameraObject.SetModelMatrix(ModelMatrix);
+		//	//AssociatedModel->AssociatedEngine->CameraObject.Update();
+		//}
+		//for (size_t i = 0; i < MeshIndexes.size(); i++)
+		//{
+		//	Mesh* MeshToDraw = AssociatedModel->GetMesh(MeshIndexes[i]);
+		//	MeshToDraw->Draw();
+		//}
+		//for (size_t i = 0; i < ChildNodes.size(); i++)
+		//{
+		//	ChildNodes[i].Draw(ModelMatrix);
+		//}
 	}
 	//MBGraphicsEngine
 	bool MBGraphicsEngine::GetKey(unsigned int KeyCode)

@@ -26,7 +26,7 @@ int main()
 	std::filesystem::current_path(std::filesystem::current_path().parent_path());
 	//std::cout << std::filesystem::current_path() << std::endl;
 	MBGE::MBGraphicsEngine GraphicEngine;
-	std::cout << "MBGETest 2" << std::endl;
+	std::cout << "MBGETest 3" << std::endl;
 	GraphicEngine.CameraObject.SetFrustum(0.1, 1000, -0.1, 0.1, -0.1, 0.1);
 	GraphicEngine.CameraObject.WorldSpaceCoordinates = MBMath::MBVector3<float>(0,0,-10);
 

@@ -412,8 +412,8 @@ namespace MBGE
 		void Draw();
 		Mesh* GetMesh(unsigned int MeshIndex);
 		Material* GetMaterial(unsigned int MaterialIndex);
-		Model(std::string ModelPath,MBGraphicsEngine* AttachedEngine);
-		Model(std::string ModelPath,std::vector<MaterialAttribute> MaterialAttributes,MBGraphicsEngine* AttachedEngine);
+		Model(std::string const& ModelPath,MBGraphicsEngine* AttachedEngine);
+		Model(std::string const& ModelPath,std::vector<MaterialAttribute> MaterialAttributes,MBGraphicsEngine* AttachedEngine);
 		//void SetRotation(float XRotation, float YRotation, float ZRotation);
 		//MBMath::MBVector3<float> GetRotation();
 	};
@@ -447,8 +447,8 @@ namespace MBGE
 
 		MBMath::MBVector3<float> GetRotation();
 		void SetRotation(float XaxisRotation, float YaxisRotation, float ZAxisRotation);
-		void SetRotation(MBMath::MBVector3<float> NewRotation);
-		void SetModelMatrix(MBMath::MBMatrix4<float> ModelMatrix);
+		void SetRotation(MBMath::MBVector3<float> const& NewRotation);
+		void SetModelMatrix(MBMath::MBMatrix4<float> const& ModelMatrix);
 		void Update();
 		MBMath::MBVector3<float> GetDirection();
 		MBMath::MBVector3<float> GetRightAxis();

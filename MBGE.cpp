@@ -1240,7 +1240,7 @@ namespace MBGE
 		aiScene* AssimpScene = (aiScene*)Scene;
 		//rekursivt lägger till 
 	}
-	Model::Model(std::string ModelPath,MBGraphicsEngine* AttachedEngine)
+	Model::Model(std::string const& ModelPath,MBGraphicsEngine* AttachedEngine)
 	{
 		//hur vi faktiskt tar och laddar in moddelen
 		AssociatedEngine = AttachedEngine;
@@ -1282,7 +1282,7 @@ namespace MBGE
 			return(nullptr);
 		}
 	}
-	Model::Model(std::string ModelPath, std::vector<MaterialAttribute> MaterialAttributes, MBGraphicsEngine* AttachedEngine)
+	Model::Model(std::string const& ModelPath, std::vector<MaterialAttribute> MaterialAttributes, MBGraphicsEngine* AttachedEngine)
 	{
 		//hur vi faktiskt tar och laddar in moddelen
 		AssociatedEngine = AttachedEngine;
@@ -1549,11 +1549,11 @@ namespace MBGE
 			std::cos(ZRadians) * std::sin(XRadians) + std::cos(XRadians) * std::sin(YRadians) * std::sin(ZRadians), -std::cos(XRadians) * std::cos(YRadians));
 		Rotation = MBMath::MBVector3<float>(XAxisRotation, YAxisRotation, ZAxisRotation);
 	}
-	void Camera::SetRotation(MBMath::MBVector3<float> NewRotation)
+	void Camera::SetRotation(MBMath::MBVector3<float> const& NewRotation)
 	{
 		SetRotation(NewRotation[0], NewRotation[1], NewRotation[2]);
 	}
-	void Camera::SetModelMatrix(MBMath::MBMatrix4<float> NewModelMatrix)
+	void Camera::SetModelMatrix(MBMath::MBMatrix4<float> const& NewModelMatrix)
 	{
 		ModelMatrix = NewModelMatrix;
 		MBMath::MBMatrix<float> MatrixIntermediary = MBMath::MBMatrix<float>(3);

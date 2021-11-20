@@ -89,7 +89,7 @@ namespace MBGE
 		void SetUniform4i(std::string const& UniformName, int x, int y, int z, int w);
 		void SetUniform1i(std::string const& UniformName, int x);
 		void SetUniform1f(std::string const& UniformName, float x);
-		void SetUniformMat4f(std::string const& UniformName, float* RowMajorData);
+		void SetUniformMat4f(std::string const& UniformName, const float* RowMajorData);
 		void SetUniformVec3(std::string const& Uniformname, float x, float y, float z);
 		void SetUniformVec4(std::string const& Uniformname, float x, float y, float z,float w);
 		void PrintActiveAttributesAndUniforms();
@@ -250,7 +250,7 @@ namespace MBGE
 		void Draw();
 		//void SavePositions();
 		//void RestorePositions();
-		void TransformPositions(MBMath::MBMatrix4<float> Transformation);
+		//void TransformPositions(MBMath::MBMatrix4<float> const& Transformation);
 		unsigned int NumberOfVertices();
 		~Mesh();
 	};

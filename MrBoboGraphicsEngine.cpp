@@ -69,7 +69,8 @@ int main()
 		{
 			ZWasPressed = false;
 		}
-		if ((clock() - Timer) / (float)CLOCKS_PER_SEC < 0.0166666 && GraphicEngine.FrameByFrame == false)
+		//if ((clock() - Timer) / (float)CLOCKS_PER_SEC < 0.0166666 && GraphicEngine.FrameByFrame == false)
+		if (false && GraphicEngine.FrameByFrame == false)
 		{
 			continue;
 		}
@@ -97,7 +98,8 @@ int main()
 		PrintDeltaIncrement += 1;
 		if (PrintDeltaIncrement% 60 == 0)
 		{
-			std::cout << (clock() - Timer) / (float)CLOCKS_PER_SEC << std::endl;
+			double DeltaTime = (clock() - Timer) / (double)CLOCKS_PER_SEC;
+			std::cout << "Delta time: "<<DeltaTime<<"="<<1/DeltaTime<<"fps" << std::endl;
 		}
 		Timer = clock();
 		//GraphicEngine.GetCurrentShader()->PrintActiveAttributesAndUniforms();

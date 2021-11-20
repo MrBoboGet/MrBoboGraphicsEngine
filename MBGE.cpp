@@ -256,7 +256,7 @@ namespace MBGE
 		glUniform1f(UniformLocation, x);
 		glCheckError();
 	}
-	void ShaderProgram::SetUniformMat4f(std::string const& UniformName, float* RowMajorData)
+	void ShaderProgram::SetUniformMat4f(std::string const& UniformName, const float* RowMajorData)
 	{
 		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
 		if (UniformLocation == -1)
@@ -829,20 +829,31 @@ namespace MBGE
 	//		Offset += VertexSize;
 	//	}
 	//}
-	void Mesh::TransformPositions(MBMath::MBMatrix4<float> Transformation)
-	{
-		unsigned int Offset = 0;
-		for (size_t i = 0; i < VerticesCount; i++)
-		{
-			float* DataPointer = (float*)&VerticesData[Offset];
-			MBMath::MBVector3<float> VectorIntermediary = MBMath::MBVector3<float>(DataPointer[0], DataPointer[1], DataPointer[2]);
-			VectorIntermediary = Transformation * VectorIntermediary;
-			DataPointer[0] = VectorIntermediary[0];
-			DataPointer[1] = VectorIntermediary[1];
-			DataPointer[2] = VectorIntermediary[2];
-			Offset += VertexSize;
-		}
-	}
+	
+	
+	
+	//void Mesh::TransformPositions(MBMath::MBMatrix4<float> const& Transformation)
+	//{
+	//	unsigned int Offset = 0;
+	//	for (size_t i = 0; i < VerticesCount; i++)
+	//	{
+	//		//TODO denna kod använad inte längre men har inte faktikst kollar om det här stämmer
+	//		float* DataPointer = (float*)&VerticesData[Offset];
+	//		MBMath::MBStaticVector<float,4> VectorIntermediary;
+	//		VectorIntermediary[0] = DataPointer[0];
+	//		VectorIntermediary[1] = DataPointer[1];
+	//		VectorIntermediary[2] = DataPointer[2];
+	//		VectorIntermediary[3] = 1;
+	//		VectorIntermediary = Transformation*VectorIntermediary;
+	//		DataPointer[0] = VectorIntermediary[0];
+	//		DataPointer[1] = VectorIntermediary[1];
+	//		DataPointer[2] = VectorIntermediary[2];
+	//		Offset += VertexSize;
+	//	}
+	//}
+	
+	
+	
 	unsigned int Mesh::NumberOfVertices()
 	{
 		return(VerticesCount);
@@ -1096,7 +1107,7 @@ namespace MBGE
 		float ElapsedTime = TimeInSec-(LowerKey.KeyTime / TicksPerSec);
 		assert(ElapsedTime >= 0);
 		float NormalizedTime = ElapsedTime / KeyTimeDifference;
-		MBMath::MBVector3<float> NewScale = LowerKey.Scaling.LinearInterpolation(HigherKey.Scaling, NormalizedTime);
+		MBMath::MBVector3<float> NewScale = MBMath::LinearInterpolation(LowerKey.Scaling,HigherKey.Scaling, NormalizedTime);
 		MBMath::MBMatrix4<float> ReturnValue = MBMath::MBMatrix4<float>();
 		//ska det vara minus kanske?
 		ReturnValue(0, 0) = NewScale[0];
@@ -1148,7 +1159,7 @@ namespace MBGE
 		float ElapsedTime = TimeInSec-(LowerKey.KeyTime / TicksPerSec);
 		assert(ElapsedTime >= 0);
 		float NormalizedTime = ElapsedTime / KeyTimeDifference;
-		MBMath::MBVector3<float> NewTranslation = LowerKey.Position.LinearInterpolation(HigherKey.Position, NormalizedTime);
+		MBMath::MBVector3<float> NewTranslation = MBMath::LinearInterpolation(LowerKey.Position,HigherKey.Position, NormalizedTime);
 		MBMath::MBMatrix4<float> ReturnValue = MBMath::MBMatrix4<float>();
 		//ska det vara minus kanske?
 		ReturnValue(0, 3) = NewTranslation[0];
@@ -1316,7 +1327,7 @@ namespace MBGE
 		//lägger till nodes, populatar ben data som meshesen behöver
 		TopNode = Node(LoadedScene->mRootNode);
 		NumberOfNodes = TopNode.GetNumberOfChildren() + 1;
-		InverseGlobalMatrix = TopNode.GetLocalTransformation().GetMatrixData().InvertedMatrix();
+		InverseGlobalMatrix = TopNode.GetLocalTransformation().GetInverse();
 		//lägger till animationer
 		for (size_t i = 0; i < LoadedScene->mNumAnimations; i++)
 		{
@@ -1355,13 +1366,13 @@ namespace MBGE
 		AssociatedEngine->CameraObject.SetModelMatrix(MBMath::MBMatrix4<float>());
 		AssociatedEngine->CameraObject.Update();
 		MBMath::MBMatrix4<float> StandardMatrix = MBMath::MBMatrix4<float>();
-		ShaderToUse->SetUniformMat4f("BoneTransforms[0]", StandardMatrix.GetContinousDataPointer());
+		ShaderToUse->SetUniformMat4f("BoneTransforms[0]", StandardMatrix.GetContinousData());
 		for (auto const& CurrentBone : BoneMap)
 		{
 			size_t TransformationIndex = NodeIDMap[CurrentBone.second.BoneID];
 			//MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
 			MBMath::MBMatrix4<float> NewTransformation = InverseGlobalMatrix * Transformations[TransformationIndex] * CurrentBone.second.OffsetMatrix;
-			ShaderToUse->SetUniformMat4f("BoneTransforms[" + std::to_string(CurrentBone.second.BoneIndex) + "]",NewTransformation.GetContinousDataPointer());
+			ShaderToUse->SetUniformMat4f("BoneTransforms[" + std::to_string(CurrentBone.second.BoneIndex) + "]",NewTransformation.GetContinousData());
 		}
 		//Bonesen är uppdaterade, nu till rita alla meshes
 		for (size_t i = 0; i < ModelMeshes.size(); i++)
@@ -1376,7 +1387,7 @@ namespace MBGE
 		MBMath::MBMatrix4<float> DefaultMatrix = MBMath::MBMatrix4<float>();
 		for (auto const& CurrentBone : BoneMap)
 		{
-			CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(CurrentBone.second.BoneIndex) + "]", DefaultMatrix.GetContinousDataPointer());
+			CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(CurrentBone.second.BoneIndex) + "]", DefaultMatrix.GetContinousData());
 		}
 		p_DrawDefault_Node(&TopNode, MBMath::MBMatrix4<float>());
 	}
@@ -1405,7 +1416,7 @@ namespace MBGE
 		//TODO optimera så vi inte behöver getta shadern varje frame
 		AssociatedEngine->SetCurrentShader(ModelShader);
 		if (BoneMap.size() != 0)
-		//if (true)
+		//if (false)
 		{
 			AnimationIsPlaying = true;
 			AnimationTime += AssociatedEngine->GetDeltaTimeInSec();
@@ -1513,8 +1524,8 @@ namespace MBGE
 		NewProjectionMatrix(2, 3) = -2 * FarPlane * NearPlane / (FarPlane - NearPlane);
 		NewProjectionMatrix(3, 2) = -1;
 		NewProjectionMatrix(3, 3) = 0;
-		std::cout << "New projection matirx:"<<std::endl << NewProjectionMatrix << std::endl;
-		NewProjectionMatrix.PrintWolframMatrix();
+		//std::cout << "New projection matirx:"<<std::endl << NewProjectionMatrix << std::endl;
+		//NewProjectionMatrix.PrintWolframMatrix();
 		ProjectionMatrix = NewProjectionMatrix;
 	}
 	MBMath::MBVector3<float> Camera::GetRotation()
@@ -1556,7 +1567,7 @@ namespace MBGE
 	void Camera::SetModelMatrix(MBMath::MBMatrix4<float> const& NewModelMatrix)
 	{
 		ModelMatrix = NewModelMatrix;
-		MBMath::MBMatrix<float> MatrixIntermediary = MBMath::MBMatrix<float>(3);
+		MBMath::MBStaticMatrix<float,3,3> MatrixIntermediary;
 		for (size_t i = 0; i < 3; i++)
 		{
 			for (size_t j = 0; j < 3; j++)
@@ -1564,7 +1575,10 @@ namespace MBGE
 				MatrixIntermediary(i, j) = ModelMatrix(i, j);
 			}
 		}
-		MatrixIntermediary = MatrixIntermediary.InvertedMatrix().Transpose();
+		//std::cout << "Matrix intermediary" << std::endl;
+		//std::cout << MatrixIntermediary << std::endl;
+		//std::cout << "Inverse:" << std::endl << MBMath::GetInverse<float, 3>(MatrixIntermediary) << std::endl;
+		MatrixIntermediary = MBMath::GetInverse<float,3>(MatrixIntermediary).Transpose();
 		NormalMatrix = MBMath::MBMatrix4<float>(MatrixIntermediary);
 	}
 	void Camera::Update()
@@ -1586,10 +1600,10 @@ namespace MBGE
 		MBMath::MBMatrix4<float> ViewMatrix = BaseChangeMatrix * TranslationMatrix;
 		ShaderProgram* CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
 		CurrentShader->Bind();
-		CurrentShader->SetUniformMat4f("Model", ModelMatrix.GetContinousDataPointer());
-		CurrentShader->SetUniformMat4f("View", ViewMatrix.GetContinousDataPointer());
-		CurrentShader->SetUniformMat4f("Projection", ProjectionMatrix.GetContinousDataPointer());
-		CurrentShader->SetUniformMat4f("NormalMatrix", NormalMatrix.GetContinousDataPointer());
+		CurrentShader->SetUniformMat4f("Model", ModelMatrix.GetContinousData());
+		CurrentShader->SetUniformMat4f("View", ViewMatrix.GetContinousData());
+		CurrentShader->SetUniformMat4f("Projection", ProjectionMatrix.GetContinousData());
+		CurrentShader->SetUniformMat4f("NormalMatrix", NormalMatrix.GetContinousData());
 		CurrentShader->SetUniformVec3("ViewPos", WorldSpaceCoordinates[0], WorldSpaceCoordinates[1], WorldSpaceCoordinates[2]);
 	}
 	MBMath::MBMatrix4<float> Camera::GetTransformationMatrix()

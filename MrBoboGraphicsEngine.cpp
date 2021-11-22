@@ -34,9 +34,18 @@ int main()
 	std::vector<MBGE::MaterialAttribute> TestAttributes = { MBGE::MaterialAttribute::DiffuseTexture,MBGE::MaterialAttribute::NormalTexture,MBGE::MaterialAttribute::SpecularTexture};
 	//MBGE::Model* TestModel = GraphicEngine.LoadModel("./Resources/Models/source/Survival_BackPack_2.fbx",TestAttributes);
 
-	GraphicEngine.LoadShader("TextureShader", "./Resources/Shaders/LightningVertex.vert", "./Resources/Shaders/LightningFrag.frag");
-	GraphicEngine.SetCurrentShader("TextureShader");
-	GraphicEngine.GetCurrentShader()->Bind();
+	auto TigerShader = GraphicEngine.LoadShader("TextureShader", "./Resources/Shaders/LightningVertex.vert", "./Resources/Shaders/LightningFrag.frag");
+	
+	GraphicEngine.SetCurrentShader(TigerShader);
+	
+	std::cout << sizeof(MBGE::UniformValue) << std::endl;
+	std::cout << sizeof(MBGE::UniformValue_Float) << std::endl;
+	std::cout << sizeof(MBGE::UniformValue_Int) << std::endl;
+	std::cout << sizeof(MBGE::UniformValue_Vec3) << std::endl;
+	std::cout << sizeof(MBGE::UniformValue_Mat4) << std::endl;
+
+	//GraphicEngine.GetCurrentShader()->Bind();
+	
 	MBGE::LightSource* TestLightning = GraphicEngine.AddLightSource();
 
 	TestLightning->AmbienceStrength = 0.1;
@@ -51,7 +60,7 @@ int main()
 	int PrintDeltaIncrement = 0;
 	std::vector<MBGE::MaterialAttribute> TigerAttributes = { MBGE::MaterialAttribute::DiffuseTexture };
 	MBGE::Model* TigerModel = GraphicEngine.LoadModel("./Resources/Models/Tiger/source/Tiger.fbx", TigerAttributes);
-	TigerModel->ModelShader = "TextureShader";
+	TigerModel->SetShader(TigerShader);
 	bool ZWasPressed = false;
 	bool XWasPressed = false;
 	while (true)
@@ -69,8 +78,8 @@ int main()
 		{
 			ZWasPressed = false;
 		}
-		//if ((clock() - Timer) / (float)CLOCKS_PER_SEC < 0.0166666 && GraphicEngine.FrameByFrame == false)
-		if (false && GraphicEngine.FrameByFrame == false)
+		if ((clock() - Timer) / (float)CLOCKS_PER_SEC < 0.0166666 && GraphicEngine.FrameByFrame == false)
+		//if (false && GraphicEngine.FrameByFrame == false)
 		{
 			continue;
 		}

@@ -5,6 +5,7 @@
 #include <time.h>
 #include <thread>
 #include <cstdint>
+#include <map>
 #define MBGE_BASE_TYPE double 
 class GLFWwindow;
 #define MBGE_BONEPERVERTEX 5
@@ -22,7 +23,10 @@ namespace MBGE
 	enum class DataTypes
 	{
 		Float,
-		Int
+		Int,
+		Matrix4,
+		Array,
+		Null,
 	};
 	class ShaderProgram;
 	class VertexShader
@@ -234,7 +238,10 @@ namespace MBGE
 		unsigned int VertexSize = 0;
 		unsigned int VerticesCount = 0;
 		unsigned int DrawVerticesCount = 0;
-		unsigned int MaterialIndex = -1;
+
+		//unsigned int MaterialIndex = -1;
+
+
 		//bygger på antagandet att varje Mesh kan ha en olik layout inom en model
 		VertexArrayObject VAO;
 		VertexLayout Layout;
@@ -245,7 +252,7 @@ namespace MBGE
 	public:
 		//TODO fixa faktiska copy semantic etc för mesh objektet
 		Mesh(int VerticesToLoadCount, int VertexToLoadSize, void* VertexToLoadData, int ArrayObjectSize, unsigned int* ArrayObjectData);
-		Mesh(void* MeshObject,std::vector<VertexAttributes> const& AttributeOrder, Model* ModelToBelong);
+		Mesh(void* MeshObject,std::vector<VertexAttributes> const& AttributeOrder, std::unordered_map<std::string,Bone> const& BoneMap, size_t* OutMaterialIndex);
 		void Rotate(float DegressToRotate, MBMath::MBVector3<float> const& AxisToRotate);
 		void Draw();
 		//void SavePositions();
@@ -306,22 +313,209 @@ namespace MBGE
 		void UpdateBones(MBMath::MBMatrix4<float> const& ParentTransformation,SkeletonAnimation const& AnimationToUse,double AnimationTime,ShaderProgram* ShaderToUpdate);
 		//kommer med detta behöva en egentlig copy constructor och etc
 	};
+	class UniformValue
+	{
+	protected:
+		//std::string m_UniformName = "";
+		DataTypes m_Type = DataTypes::Null;
+	public:
+		virtual void SetFloat(float FloatValue)
+		{
+			throw std::domain_error("Not of float type");
+		}
+		virtual float& GetFloat()
+		{
+			throw std::domain_error("Not of float type");
+		}
+		virtual void SetInt(int FloatValue)
+		{
+			throw std::domain_error("Not of int type");
+		}
+		virtual int& GetInt()
+		{
+			throw std::domain_error("Not of int type");
+		}
+		virtual void SetVec3(float x, float y, float z)
+		{
+			throw std::domain_error("Not of vec3 type");
+		}
+		virtual MBMath::MBVector3<float>& GetVec3()
+		{
+			throw std::domain_error("Not of vec3 type");
+		}
+		virtual void SetVec3(MBMath::MBStaticVector3<float> const& VectorToSet)
+		{
+			throw std::domain_error("Not of vec3 type");
+		}
+		virtual void SetMat4(MBMath::MBMatrix4<float> const& MatrixToSet)
+		{
+			throw std::domain_error("Not of matrix type");
+		}
+		virtual MBMath::MBMatrix4<float>& GetMat4()
+		{
+			throw std::domain_error("Not of matrix type");
+		}
+		virtual ~UniformValue()
+		{
+
+		}
+		//void 
+	};
+	class UniformValue_Float : public UniformValue
+	{
+	private:
+	public:
+		float Value = 0;
+		UniformValue_Float(float NewValue)
+		{
+			Value = NewValue;
+			m_Type = DataTypes::Float;
+		}
+		virtual void SetFloat(float FloatValue)
+		{
+			Value = FloatValue;
+		}
+		virtual float& GetFloat()
+		{
+			return(Value);
+		}
+		virtual ~UniformValue_Float()
+		{
+
+		}
+	};
+	class UniformValue_Int : public UniformValue
+	{
+	private:
+	public:
+		int Value = 0;
+
+		UniformValue_Int(int NewValue)
+		{
+			Value = NewValue;
+			m_Type = DataTypes::Int;
+		}
+
+		virtual void SetInt(int IntValue) override
+		{
+			Value = IntValue;
+		}
+		virtual int& GetInt() override
+		{
+			return(Value);
+		}
+		virtual ~UniformValue_Int()
+		{
+
+		}
+	};
+	class UniformValue_Vec3 : public UniformValue
+	{
+	private:
+	public:
+		MBMath::MBVector3<float> Data;
+
+		UniformValue_Vec3(float x, float y, float z)
+		{
+			Data[0] = x;
+			Data[1] = y;
+			Data[2] = z;
+		}
+		virtual void SetVec3(float x, float y, float z) override
+		{
+			//Value = IntValue;
+			Data[0] = x;
+			Data[1] = y;
+			Data[2] = z;
+		}
+		virtual void SetVec3(MBMath::MBVector3<float> const& NewData) override
+		{
+			Data = NewData;
+		}
+		virtual MBMath::MBVector3<float>& GetVec3() override
+		{
+			return(Data);
+		}
+		virtual ~UniformValue_Vec3()
+		{
+
+		}
+	};
+	class UniformValue_Mat4 : public UniformValue
+	{
+	private:
+	public:
+		MBMath::MBMatrix4<float> Value;
+		virtual void SetMat4(MBMath::MBMatrix4<float> const& IntValue) override
+		{
+			Value = IntValue;
+		}
+		virtual MBMath::MBMatrix4<float>& GetMat4() override
+		{
+			return(Value);
+		}
+		virtual ~UniformValue_Mat4()
+		{
+
+		}
+	};
+	class UniformValue_Vector : public UniformValue
+	{
+	private:
+		std::string m_TypeName = "";
+		std::vector<std::unique_ptr<UniformValue>> m_Values = {};
+	public:
+		void AddValue();
+
+		void SetValue(size_t);
+	};
+	class UniformValue_Aggregate : public UniformValue
+	{
+	private:
+		std::string m_TypeName = "";
+		std::vector<std::unique_ptr<UniformValue>> m_Values = {};
+	public:
+		void AddValue();
+		void SetValue();
+		void SetValue(size_t);
+	};
 	class Material
 	{
 	private:
 		std::vector<std::string> GetTexturePaths(void* MaterialData, int TextureType);
 		MBGraphicsEngine* AssciatedGraphicsEngine;
+
+		std::string SpecularTexture = "";
+		std::string DiffuseTexture = "";
+		std::string NormalTexture = "";
+
+		std::map<std::string, UniformValue> m_UniformMap = {};
 	public:
 		std::vector<MaterialAttribute> MaterialShaderAttributes = { MaterialAttribute::DiffuseTexture,MaterialAttribute::NormalTexture,MaterialAttribute::SpecularTexture };
-		std::string DiffuseTexture = "";
+		
 		MBMath::MBVector3<float> Color = MBMath::MBVector3<float>(0, 0, 0);
-		std::string SpecularTexture = "";
 		float SpecularStrength = -1;
 		float SpecularExp = -1;
-		std::string NormalTexture = "";
+
 		Material(void* MaterialData,std::string PathToModel,MBGraphicsEngine* AttachedEngine);
 		Material(void* MaterialData,std::string PathToModel,std::vector<MaterialAttribute> NewMaterialAttributes,MBGraphicsEngine* AttachedEngine);
-		void SetUniforms();
+		void SetUniforms(ShaderProgram* ProgramModify);
+
+		void SetUniform_Float(std::string const& UniformName,double FloatValue);
+		void SetUniform_Int(std::string const& UniformName,int IntegerValue);
+		void SetUniform_Vec3(std::string const& UniformName,double x,double y, double z);
+		void SetUniform_Vec3(std::string const& UniformName,MBMath::MBStaticVector3<double> const& VectorToSet);
+		void SetUniform_Mat4(std::string const& UniformName,MBMath::MBMatrix4<double> const& MatrixToSet);
+
+		void AddUniformVector(std::string const& VectorName);
+		void AddAggregateType(std::string const& UniformName, std::string const& TypeName);
+
+		UniformValue_Vector& GetUniformArray(std::string const& UniformName);
+		UniformValue_Aggregate& GetUniformStruct(std::string const& UniformName);
+
+		UniformValue_Vector const& GetUniformArray(std::string const& UniformName) const;
+		UniformValue_Aggregate const& GetUniformStruct(std::string const& UniformName) const;
+		
 	};
 	struct NodeAnimationRotationKey
 	{
@@ -380,40 +574,48 @@ namespace MBGE
 	private:
 		//eftersom position och eventuellt vinklar är sådant som vi inte nödvändigtvis vill kunna ändra utan vidare
 		MBMath::MBVector3<float> WorldPosition = MBMath::MBVector3<float>(0, 0, 0);
-		std::vector<Mesh*> ModelMeshes = {};
-		//en models position är given i world coordinater
+		
+		std::vector<std::unique_ptr<Mesh>> ModelMeshes = {};
+		std::vector<size_t> m_MeshMaterialIndexes = {};
 		std::vector<Material> ModelMaterials = {};
-		ShaderProgram* ModelShaderProgram = nullptr;
+		//ShaderProgram< ModelShaderProgram = nullptr;
 		Node TopNode;
+		size_t m_NumberOfNodes = 0;
+
+		std::shared_ptr<ShaderProgram> m_ModelShader = nullptr;
+
 		std::vector<MaterialAttribute> ModelShaderAttributes = { MaterialAttribute::DiffuseTexture,MaterialAttribute::NormalTexture,MaterialAttribute::SpecularTexture };
-		//eftersom vi inte vill ha assimp i headefilen så passas en voidpointer utifall jag byter backend
-		void ProcessNode(void* Node, void* Scene);
+		std::unordered_map<std::string, Bone> m_BoneMap = {};
+		std::vector<ModelAnimation> Animations = {};
+
+
 		bool AnimationIsPlaying = false;
 		double AnimationTime = 0;
-		std::vector<ModelAnimation> Animations = {};
 		void p_DrawAnimation(ModelAnimation const& ModelAnimationToDraw,ShaderProgram* ShaderToUse, double AnimationTimeInSec);
 		void p_DrawDefault();
 		void p_DrawDefault_Node(const Node* NodeToProcess, MBMath::MBMatrix4<float> ParentTransformation);
+		
+		//Mesh* GetMesh(unsigned int MeshIndex);
 	public:
-		size_t NumberOfNodes = 0;
 
-		std::vector<std::string> NodeNames = {};
+		//std::vector<std::string> NodeNames = {};
+		Model(std::string const& ModelPath, MBGraphicsEngine* AttachedEngine);
+		Model(std::string const& ModelPath, std::vector<MaterialAttribute> MaterialAttributes, MBGraphicsEngine* AttachedEngine);
 		
 		MBMath::MBMatrix4<float> InverseGlobalMatrix = MBMath::MBMatrix4<float>();
-		std::unordered_map<std::string, Bone> BoneMap = {};
-		std::string ModelShader = "";
+		//std::string ModelShader = "";
 		MBGraphicsEngine* AssociatedEngine = nullptr;
 
 
+
 		ModelAnimation* GetCurrentAnimation();
+		void SetShader(std::shared_ptr<ShaderProgram> ProgramToUse);
+		
 		bool IsPlayingAnimation() { return(AnimationIsPlaying); };
 		double GetAnimationTimeInSec() { return(AnimationTime); };
-		void Rotate(float DegressToRotate, MBMath::MBVector3<float> AxisToRotate);
+		void Rotate(float DegressToRotate, MBMath::MBVector3<float> const& AxisToRotate);
 		void Draw();
-		Mesh* GetMesh(unsigned int MeshIndex);
-		Material* GetMaterial(unsigned int MaterialIndex);
-		Model(std::string const& ModelPath,MBGraphicsEngine* AttachedEngine);
-		Model(std::string const& ModelPath,std::vector<MaterialAttribute> MaterialAttributes,MBGraphicsEngine* AttachedEngine);
+		//Material* GetMaterial(unsigned int MaterialIndex);
 		//void SetRotation(float XRotation, float YRotation, float ZRotation);
 		//MBMath::MBVector3<float> GetRotation();
 	};
@@ -488,8 +690,11 @@ namespace MBGE
 		GLFWwindow* Window;
 		std::string ResourceFolder = "";
 		std::vector<Model*> LoadedModels = {};
-		std::string CurrentShaderID = "";
-		std::unordered_map<std::string, ShaderProgram*> LoadedShaders = {};
+		//std::string CurrentShaderID = "";
+		
+		std::shared_ptr<ShaderProgram> m_CurrentShader = nullptr;
+
+		std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> LoadedShaders = {};
 		std::unordered_map<std::string, Texture*> LoadedTextures = {};
 		std::vector<LightSource*> LightSources = {};
 		VertexArrayObject* PBS_VertexArray;
@@ -507,16 +712,17 @@ namespace MBGE
 		std::string PostProcessingShaderID = "Default_PPS";
 		Camera CameraObject = Camera(this);
 		void UpdateUniforms();
-		ShaderProgram* GetCurrentShader();
+		std::shared_ptr<ShaderProgram> GetCurrentShader();
 		LightSource* AddLightSource();
-		void SetCurrentShader(std::string ShaderID);
+		//void SetCurrentShader(std::string ShaderID);
+		void SetCurrentShader(std::shared_ptr<ShaderProgram> ShaderToUse);
 		MBGraphicsEngine();
 		bool GetKeyUp(unsigned int KeyCode);
 		bool GetKey(unsigned int KeyCode);
 		Model* LoadModel(std::string ModelPath,std::vector<MaterialAttribute> MaterialAttributes);
-		ShaderProgram* LoadShader(std::string ShaderID,std::string VertexShaderPath,std::string FragmentShaderPath);
-		ShaderProgram* LoadShader(std::string ShaderID,std::string VertexShaderPath,std::string GeometryShaderPath,std::string FragmentShaderPath);
-		ShaderProgram* GetShader(std::string ShaderID);
+		std::shared_ptr<ShaderProgram> LoadShader(std::string ShaderID,std::string VertexShaderPath,std::string FragmentShaderPath);
+		std::shared_ptr<ShaderProgram> LoadShader(std::string ShaderID,std::string VertexShaderPath,std::string GeometryShaderPath,std::string FragmentShaderPath);
+		std::shared_ptr<ShaderProgram> GetShader(std::string ShaderID);
 		Texture* GetTexture(std::string TextureFilePath);
 		void PollEvents();
 		std::string GetResourceFolder();

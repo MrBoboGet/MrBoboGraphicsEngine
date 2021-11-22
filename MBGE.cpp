@@ -587,11 +587,11 @@ namespace MBGE
 			VerticesData[i] = NewData[i];
 		}
 	}
-	Mesh::Mesh(void* MeshDataObject,std::vector<VertexAttributes> const& AttributeOrder,Model* ModelToBelong)
+	Mesh::Mesh(void* MeshDataObject,std::vector<VertexAttributes> const& AttributeOrder, std::unordered_map<std::string, Bone> const& BoneMap,size_t* OutMaterialIndex)
 		: Buffer(), ArrayObject(),VAO(),Layout()
 	{
 		const int TextureDimensions = 2;
-		AssociatedModel = ModelToBelong;
+		//AssociatedModel = ModelToBelong;
 		aiMesh* AssimpMesh = (aiMesh*)MeshDataObject;
 		//vi ska alltid anta att början av meshen är 
 		//vi börjar med att definiera layouten som beror på vilka av våra grejer som är definierade
@@ -600,7 +600,7 @@ namespace MBGE
 		//vi har alltid en position
 		Layout.AddAttribute(sizeof(float), 3, DataTypes::Float);
 		VerticesCount = AssimpMesh->mNumVertices;
-		MaterialIndex = AssimpMesh->mMaterialIndex;
+		*OutMaterialIndex = AssimpMesh->mMaterialIndex;
 		//borde egentligen kolla för om vi saknar attributer vi vill ha
 		for (size_t i = 0; i < AttributeOrder.size(); i++)
 		{
@@ -628,7 +628,7 @@ namespace MBGE
 		}
 		//huruvida vi har ben attributer läggs tills på slutet
 		int BoneAttributesSize = 0;
-		if (AssociatedModel->BoneMap.size() != 0)
+		if (BoneMap.size() != 0)
 		{
 			for (size_t i = 0; i < MBGE_BONEPERVERTEX; i++)
 			{
@@ -647,7 +647,7 @@ namespace MBGE
 		{
 			for (size_t j = 0; j < AssimpMesh->mFaces[i].mNumIndices; j++)
 			{
-				assert(AssimpMesh->mFaces[i].mNumIndices == 3);
+
 				ArrayBufferData[FaceOffset] = AssimpMesh->mFaces[i].mIndices[j];
 				FaceOffset += 1;
 			}
@@ -732,22 +732,22 @@ namespace MBGE
 		}
 		//har vi bendata vill vi lägga in det i vektorn med
 		//if (AssociatedModel->BoneMap.size()!= 0)
-		if (AssociatedModel->BoneMap.size() != 0)
+		if (BoneMap.size() != 0)
 		{
 			std::vector<char> BonesPerVertex = std::vector<char>(VerticesCount, 0);
 			for (size_t i = 0; i < AssimpMesh->mNumBones; i++)
 			{
-				Bone MBBone = AssociatedModel->BoneMap[std::string(AssimpMesh->mBones[i]->mName.C_Str())];
+				Bone MBBone = BoneMap.at(std::string(AssimpMesh->mBones[i]->mName.C_Str()));
 				for (size_t j = 0; j < MBBone.Weights.size(); j++)
 				{
 					int VertexToModify = MBBone.Weights[j].VertexIndex;
 					char VertexToModifyPreviousBoneCount = BonesPerVertex[VertexToModify];
 					BonesPerVertex[VertexToModify] += 1;
-					if (BonesPerVertex[VertexToModify] > MBGE_BONEPERVERTEX)
-					{
-						int Hej = BonesPerVertex[VertexToModify];
-						int Hej2 = BonesPerVertex[VertexToModify];
-					}
+					//if (BonesPerVertex[VertexToModify] > MBGE_BONEPERVERTEX)
+					//{
+					//	int Hej = BonesPerVertex[VertexToModify];
+					//	int Hej2 = BonesPerVertex[VertexToModify];
+					//}
 					int VertexToModifyBoneDataOffset = VertexToModify * VertexSize+(VertexSize-BoneAttributesSize) + VertexToModifyPreviousBoneCount * (sizeof(int) + sizeof(float));
 					int* BoneIndexPtr = (int*)&VerticesData[VertexToModifyBoneDataOffset];
 					float* BoneWeightPtr = (float*)&VerticesData[VertexToModifyBoneDataOffset+sizeof(int)];
@@ -756,9 +756,6 @@ namespace MBGE
 				}
 			}
 		}
-		//nu är all data innladdad, vi tar och sätter vårt buffer object likaså
-		float* DebugPointer = (float*)&VerticesData[0];
-		int DebugNumberOfFloats = VerticesData.size() / 4;
  		Buffer.Bind();
 		Buffer.ResizeBuffer(TotalData, &VerticesData[0]);
 		Layout.Bind();
@@ -791,8 +788,8 @@ namespace MBGE
 	{
 		//TODO omarbeta hela strukture, inser att vi vill nog göra det här på ett väldig annorlunda sätt
 		//vi behöver binda rätt textures
-		Material* MaterialToUse = AssociatedModel->GetMaterial(MaterialIndex);
-		MaterialToUse->SetUniforms();
+		//Material* MaterialToUse = AssociatedModel->GetMaterial(MaterialIndex);
+		//MaterialToUse->SetUniforms();
 		VAO.Bind();
 		Buffer.Bind();
 		ArrayObject.Bind();
@@ -889,10 +886,11 @@ namespace MBGE
 		int NumberOfTextures = 0;
 		std::vector<aiTextureType> TextureTypes = { aiTextureType::aiTextureType_AMBIENT,aiTextureType::aiTextureType_AMBIENT_OCCLUSION,aiTextureType::aiTextureType_BASE_COLOR,
 		aiTextureType::aiTextureType_DIFFUSE,aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS,aiTextureType::aiTextureType_DISPLACEMENT,aiTextureType::aiTextureType_EMISSION_COLOR,
-		aiTextureType::aiTextureType_EMISSIVE,aiTextureType::aiTextureType_HEIGHT,aiTextureType::aiTextureType_LIGHTMAP,aiTextureType::aiTextureType_METALNESS,aiTextureType::aiTextureType_NONE,
-		aiTextureType::aiTextureType_NORMALS,aiTextureType::aiTextureType_NORMAL_CAMERA,aiTextureType::aiTextureType_OPACITY,aiTextureType::aiTextureType_REFLECTION,aiTextureType::aiTextureType_SHININESS,
-		aiTextureType::aiTextureType_SPECULAR,aiTextureType::aiTextureType_UNKNOWN,aiTextureType::_aiTextureType_Force32Bit
-		};
+		aiTextureType::aiTextureType_EMISSIVE,aiTextureType::aiTextureType_HEIGHT,aiTextureType::aiTextureType_LIGHTMAP,
+			aiTextureType::aiTextureType_METALNESS,aiTextureType::aiTextureType_NONE,	aiTextureType::aiTextureType_NORMALS,
+			aiTextureType::aiTextureType_NORMAL_CAMERA,aiTextureType::aiTextureType_OPACITY,
+			aiTextureType::aiTextureType_REFLECTION,aiTextureType::aiTextureType_SHININESS,
+		aiTextureType::aiTextureType_SPECULAR,aiTextureType::aiTextureType_UNKNOWN};
 		for (size_t i = 0; i < TextureTypes.size(); i++)
 		{
 			NumberOfTextures += AssimpMaterial->GetTextureCount(TextureTypes[i]);
@@ -953,45 +951,45 @@ namespace MBGE
 			NormalTexture = PathToModel + "Normal.png";
 		}
 	}
-	void Material::SetUniforms()
+	void Material::SetUniforms(ShaderProgram* ProgramToModify)
 	{
 		//förutsätter att vi redan har en bunden shader med rätt inställningar
 		//laddar inte texutresen vi behöver
 		//TODO optimesera det här så att det bara händer i konstrukturn och garantera att enginene aldrig deletar data som ett existerande ogbjekt använder
-		ShaderProgram* CurrentShader = AssciatedGraphicsEngine->GetCurrentShader();
-		CurrentShader->Bind();
+		//ShaderProgram* CurrentShader = AssciatedGraphicsEngine->GetCurrentShader();
+		//CurrentShader->Bind();
 		if (VectorContains<MaterialAttribute>(MaterialShaderAttributes,MaterialAttribute::DiffuseTexture))
 		{
 			Texture* DiffuseToUse = AssciatedGraphicsEngine->GetTexture(DiffuseTexture);
 			DiffuseToUse->Bind(0);
-			CurrentShader->SetUniform1i("FragUni.UseDiffTex", true);
-			CurrentShader->SetUniform1i("DiffuseTex", 0);
+			ProgramToModify->SetUniform1i("FragUni.UseDiffTex", true);
+			ProgramToModify->SetUniform1i("DiffuseTex", 0);
 		}
 		else
 		{
-			CurrentShader->SetUniform1i("FragUni.UseDiffTex", false);
+			ProgramToModify->SetUniform1i("FragUni.UseDiffTex", false);
 		}
 		if (VectorContains<MaterialAttribute>(MaterialShaderAttributes, MaterialAttribute::SpecularTexture))
 		{
 			Texture* SpecToUse = AssciatedGraphicsEngine->GetTexture(SpecularTexture);
 			SpecToUse->Bind(1);
-			CurrentShader->SetUniform1i("FragUni.UseSpecTex", true);
-			CurrentShader->SetUniform1i("SpecTex", 1);
+			ProgramToModify->SetUniform1i("FragUni.UseSpecTex", true);
+			ProgramToModify->SetUniform1i("SpecTex", 1);
 		}
 		else
 		{
-			CurrentShader->SetUniform1i("FragUni.UseSpecTex", false);
+			ProgramToModify->SetUniform1i("FragUni.UseSpecTex", false);
 		}
 		if (VectorContains<MaterialAttribute>(MaterialShaderAttributes, MaterialAttribute::NormalTexture))
 		{
 			Texture* NormalToUse = AssciatedGraphicsEngine->GetTexture(NormalTexture);
 			NormalToUse->Bind(2);
-			CurrentShader->SetUniform1i("FragUni.UseNormTex", true);
-			CurrentShader->SetUniform1i("NormalTex", 2);
+			ProgramToModify->SetUniform1i("FragUni.UseNormTex", true);
+			ProgramToModify->SetUniform1i("NormalTex", 2);
 		}
 		else
 		{
-			CurrentShader->SetUniform1i("FragUni.UseNormTex", false);
+			ProgramToModify->SetUniform1i("FragUni.UseNormTex", false);
 		}
 	}
 	//Bone
@@ -1237,19 +1235,13 @@ namespace MBGE
 	//	return(AssociatedNodeTransformation.GetTransformation(TimeInSec));
 	//}
 	//Model
-	void Model::Rotate(float DegreesToRotate, MBMath::MBVector3<float> RotationAxis)
+	void Model::Rotate(float DegreesToRotate, MBMath::MBVector3<float> const& RotationAxis)
 	{
 		//roterar helt enkelt varje mesh motsvarande grader
 		for (size_t i = 0; i < ModelMeshes.size(); i++)
 		{
 			(*ModelMeshes[i]).Rotate(DegreesToRotate, RotationAxis);
 		}
-	}
-	void Model::ProcessNode(void* Node, void* Scene)
-	{
-		aiNode* AssimpNode = (aiNode*)Node;
-		aiScene* AssimpScene = (aiScene*)Scene;
-		//rekursivt lägger till 
 	}
 	Model::Model(std::string const& ModelPath,MBGraphicsEngine* AttachedEngine)
 	{
@@ -1268,13 +1260,15 @@ namespace MBGE
 		unsigned int NumberOfTriangels = 0;
 		for (size_t i = 0; i < NumberOfMeshes; i++)
 		{
-			ModelMeshes.push_back(new Mesh(LoadedScene->mMeshes[i], StandardAttributeOrder,this));
+			size_t MeshMaterialIndex = 0;
+			ModelMeshes.push_back(std::unique_ptr<Mesh>(new Mesh(LoadedScene->mMeshes[i], StandardAttributeOrder, m_BoneMap, &MeshMaterialIndex)));
+			m_MeshMaterialIndexes.push_back(MeshMaterialIndex);
 			NumberOfTriangels += ModelMeshes.back()->NumberOfVertices();
 		}
 		std::cout << "Number of Triangels "<<NumberOfTriangels/3<<std::endl;
 		//lägger till nodes
 		TopNode = Node(LoadedScene->mRootNode);
-		NumberOfNodes = TopNode.GetNumberOfChildren() + 1;
+		m_NumberOfNodes = TopNode.GetNumberOfChildren() + 1;
 		//lägger till materials
 		unsigned int NumberOfMaterials = LoadedScene->mNumMaterials;
 		for (size_t i = 0; i < NumberOfMaterials; i++)
@@ -1292,6 +1286,10 @@ namespace MBGE
 		{
 			return(nullptr);
 		}
+	}
+	void Model::SetShader(std::shared_ptr<ShaderProgram> ProgramToUse)
+	{
+		m_ModelShader = ProgramToUse;
 	}
 	Model::Model(std::string const& ModelPath, std::vector<MaterialAttribute> MaterialAttributes, MBGraphicsEngine* AttachedEngine)
 	{
@@ -1315,10 +1313,10 @@ namespace MBGE
 			{
 				aiBone* NewBone = LoadedScene->mMeshes[i]->mBones[j];
 				std::string NewBoneID = std::string(NewBone->mName.C_Str());
-				if (BoneMap.find(NewBoneID) == BoneMap.end())
+				if (m_BoneMap.find(NewBoneID) == m_BoneMap.end())
 				{
-					BoneMap[NewBoneID] = Bone(NewBone);
-					BoneMap[NewBoneID].BoneIndex = BoneIndexCounter;
+					m_BoneMap[NewBoneID] = Bone(NewBone);
+					m_BoneMap[NewBoneID].BoneIndex = BoneIndexCounter;
 					BoneIndexCounter += 1;
 				}
 			}
@@ -1326,7 +1324,7 @@ namespace MBGE
 		//BoneOffsetList = std::vector<MBMath::MBMatrix4<float>>(BoneIndexCounter, MBMath::MBMatrix4<float>());
 		//lägger till nodes, populatar ben data som meshesen behöver
 		TopNode = Node(LoadedScene->mRootNode);
-		NumberOfNodes = TopNode.GetNumberOfChildren() + 1;
+		m_NumberOfNodes = TopNode.GetNumberOfChildren() + 1;
 		InverseGlobalMatrix = TopNode.GetLocalTransformation().GetInverse();
 		//lägger till animationer
 		for (size_t i = 0; i < LoadedScene->mNumAnimations; i++)
@@ -1338,7 +1336,9 @@ namespace MBGE
 		unsigned int NumberOfTriangels = 0;
 		for (size_t i = 0; i < NumberOfMeshes; i++)
 		{
-			ModelMeshes.push_back(new Mesh(LoadedScene->mMeshes[i], StandardAttributeOrder, this));
+			size_t MeshMaterialIndex = 0;
+			ModelMeshes.push_back(std::unique_ptr<Mesh>(new Mesh(LoadedScene->mMeshes[i], StandardAttributeOrder, m_BoneMap,&MeshMaterialIndex)));
+			m_MeshMaterialIndexes.push_back(MeshMaterialIndex);
 			NumberOfTriangels += ModelMeshes.back()->NumberOfVertices();
 		}
 		std::cout << "Number of Triangels " << NumberOfTriangels / 3 << std::endl;
@@ -1351,14 +1351,14 @@ namespace MBGE
 		}
 	}
 
-	Mesh* Model::GetMesh(unsigned int MeshIndex)
-	{
-		return(ModelMeshes[MeshIndex]);
-	}
-	Material* Model::GetMaterial(unsigned int MaterialIndex)
-	{
-		return(&ModelMaterials[MaterialIndex]);
-	}
+	//Mesh* Model::GetMesh(unsigned int MeshIndex)
+	//{
+	//	return(ModelMeshes[MeshIndex]);
+	//}
+	//Material* Model::GetMaterial(unsigned int MaterialIndex)
+	//{
+	//	return(&ModelMaterials[MaterialIndex]);
+	//}
 	void Model::p_DrawAnimation(ModelAnimation const& ModelAnimationToDraw,ShaderProgram* ShaderToUse, double AnimationTimeInSec)
 	{
 		std::vector<MBMath::MBMatrix4<float>> Transformations = TopNode.GetAnimationTransformations(ModelAnimationToDraw.BoneAnimation, AnimationTimeInSec);
@@ -1367,7 +1367,7 @@ namespace MBGE
 		AssociatedEngine->CameraObject.Update();
 		MBMath::MBMatrix4<float> StandardMatrix = MBMath::MBMatrix4<float>();
 		ShaderToUse->SetUniformMat4f("BoneTransforms[0]", StandardMatrix.GetContinousData());
-		for (auto const& CurrentBone : BoneMap)
+		for (auto const& CurrentBone : m_BoneMap)
 		{
 			size_t TransformationIndex = NodeIDMap[CurrentBone.second.BoneID];
 			//MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
@@ -1377,15 +1377,17 @@ namespace MBGE
 		//Bonesen är uppdaterade, nu till rita alla meshes
 		for (size_t i = 0; i < ModelMeshes.size(); i++)
 		{
+			Material& MaterialToUse = ModelMaterials[m_MeshMaterialIndexes[i]];
+			MaterialToUse.SetUniforms(m_ModelShader.get());
 			ModelMeshes[i]->Draw();
 		}
 	}
 	void Model::p_DrawDefault()
 	{
 		//std::vector<MBMath::MBMatrix4<float>> Transformations = TopNode.GetDefaultTransformations();
-		ShaderProgram* CurrentShader = AssociatedEngine->GetCurrentShader();
+		std::shared_ptr<ShaderProgram> CurrentShader = AssociatedEngine->GetCurrentShader();
 		MBMath::MBMatrix4<float> DefaultMatrix = MBMath::MBMatrix4<float>();
-		for (auto const& CurrentBone : BoneMap)
+		for (auto const& CurrentBone : m_BoneMap)
 		{
 			CurrentShader->SetUniformMat4f("BoneTransforms[" + std::to_string(CurrentBone.second.BoneIndex) + "]", DefaultMatrix.GetContinousData());
 		}
@@ -1401,8 +1403,10 @@ namespace MBGE
 		}
 		for (size_t i = 0; i < NodeToProcess->MeshIndexes.size(); i++)
 		{
-			Mesh* MeshToDraw = GetMesh(NodeToProcess->MeshIndexes[i]);
-			MeshToDraw->Draw();
+			Mesh& MeshToDraw = *ModelMeshes[NodeToProcess->MeshIndexes[i]];
+			Material& MaterialToUse = ModelMaterials[m_MeshMaterialIndexes[NodeToProcess->MeshIndexes[i]]];
+			MaterialToUse.SetUniforms(m_ModelShader.get());
+			MeshToDraw.Draw();
 		}
 		std::vector<Node> const& NodeChildren = NodeToProcess->GetChildren();
 		for (size_t i = 0; i < NodeToProcess->GetChildren().size(); i++)
@@ -1411,11 +1415,11 @@ namespace MBGE
 		}
 	}
 	void Model::Draw()
-	{
-		//vi callar helt enkelt nodens draw funktion, som ritar grejen rekursivt
-		//TODO optimera så vi inte behöver getta shadern varje frame
-		AssociatedEngine->SetCurrentShader(ModelShader);
-		if (BoneMap.size() != 0)
+	{		
+		//AssociatedEngine->SetCurrentShader(m_ModelShader);
+		m_ModelShader->Bind();
+
+		if (m_BoneMap.size() != 0)
 		//if (false)
 		{
 			AnimationIsPlaying = true;
@@ -1426,7 +1430,7 @@ namespace MBGE
 			{
 				AnimationTime = 0;
 			}
-			p_DrawAnimation(*CurrentAnimation, AssociatedEngine->GetShader(ModelShader),AnimationTime);
+			p_DrawAnimation(*CurrentAnimation, m_ModelShader.get(),AnimationTime);
 			//TopNode.DrawAnimation(CurrentAnimation->BoneAnimation,AssociatedEngine->GetShader(ModelShader),AnimationTime);
 		}
 		else
@@ -1598,7 +1602,7 @@ namespace MBGE
 		BaseChangeMatrix(2, 1) = Facing[1];
 		BaseChangeMatrix(2, 2) = Facing[2];
 		MBMath::MBMatrix4<float> ViewMatrix = BaseChangeMatrix * TranslationMatrix;
-		ShaderProgram* CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
+		std::shared_ptr<ShaderProgram> CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
 		CurrentShader->Bind();
 		CurrentShader->SetUniformMat4f("Model", ModelMatrix.GetContinousData());
 		CurrentShader->SetUniformMat4f("View", ViewMatrix.GetContinousData());
@@ -1641,7 +1645,7 @@ namespace MBGE
 			float SpecExp;
 		*/
 		std::string StringPosition = std::to_string(Position);
-		ShaderProgram* CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
+		std::shared_ptr<ShaderProgram> CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
 		CurrentShader->SetUniformVec3("LightSources[" + StringPosition + "].WorldPos", WorldPosition[0], WorldPosition[1], WorldPosition[2]);
 		CurrentShader->SetUniformVec3("LightSources[" + StringPosition + "].Color", LightColor[0], LightColor[1], LightColor[2]);
 		CurrentShader->SetUniform1f("LightSources[" + StringPosition + "].AmbStr",AmbienceStrength);
@@ -1996,7 +2000,7 @@ namespace MBGE
 	}
 	void MBGraphicsEngine::DrawPostProcessing()
 	{
-		ShaderProgram* PPS_Shader = GetShader(PostProcessingShaderID);
+		std::shared_ptr<ShaderProgram> PPS_Shader = GetShader(PostProcessingShaderID);
 		PPS_Shader->Bind();
 		PPS_Shader->SetUniform1i("RenderedImage", 0);
 		PPS_Shader->SetUniform1i("DepthStencilTexture", 1);
@@ -2035,20 +2039,21 @@ namespace MBGE
 		glEnable(GL_DEPTH_TEST);
 		glCheckError();
 	}
-	ShaderProgram* MBGraphicsEngine::LoadShader(std::string ShaderID, std::string VertexShaderPath, std::string FragmentShaderPath)
+	std::shared_ptr<ShaderProgram> MBGraphicsEngine::LoadShader(std::string ShaderID, std::string VertexShaderPath, std::string FragmentShaderPath)
 	{
 		VertexShader NewVertexShader = VertexShader(VertexShaderPath);
 		FragmentShader NewFragmentShader = FragmentShader(FragmentShaderPath);
-		ShaderProgram* NewShader = new ShaderProgram(NewVertexShader,NewFragmentShader);
+		std::shared_ptr<ShaderProgram> NewShader =std::shared_ptr<ShaderProgram>(new ShaderProgram(NewVertexShader,NewFragmentShader));
 		LoadedShaders[ShaderID] = NewShader;
 		return(NewShader);
 	}
-	ShaderProgram* MBGraphicsEngine::LoadShader(std::string ShaderID, std::string VertexShaderPath, std::string GeometryShaderPath,std::string FragmentShaderPath)
+	std::shared_ptr<ShaderProgram> MBGraphicsEngine::LoadShader(std::string ShaderID, std::string VertexShaderPath, std::string GeometryShaderPath,std::string FragmentShaderPath)
 	{
 		VertexShader NewVertexShader = VertexShader(VertexShaderPath);
 		FragmentShader NewFragmentShader = FragmentShader(FragmentShaderPath);
 		GeometryShader NewGeometryShader = GeometryShader(GeometryShaderPath);
-		ShaderProgram* NewShader = new ShaderProgram(NewVertexShader, NewGeometryShader,NewFragmentShader);
+
+		std::shared_ptr<ShaderProgram> NewShader = std::shared_ptr<ShaderProgram>(new ShaderProgram(NewVertexShader, NewGeometryShader,NewFragmentShader));
 		LoadedShaders[ShaderID] = NewShader;
 		return(NewShader);
 	}
@@ -2065,18 +2070,22 @@ namespace MBGE
 			return(NewTexture);
 		}
 	}
-	void MBGraphicsEngine::SetCurrentShader(std::string ShaderID)
+	//void MBGraphicsEngine::SetCurrentShader(std::string ShaderID)
+	//{
+	//	CurrentShaderID = ShaderID;
+	//	LoadedShaders[ShaderID]->Bind();
+	//}
+	std::shared_ptr<ShaderProgram> MBGraphicsEngine::GetCurrentShader()
 	{
-		CurrentShaderID = ShaderID;
-		LoadedShaders[ShaderID]->Bind();
+		return(m_CurrentShader);
 	}
-	ShaderProgram* MBGraphicsEngine::GetCurrentShader()
+	void MBGraphicsEngine::SetCurrentShader(std::shared_ptr<ShaderProgram> ShaderToUse)
 	{
-		return(LoadedShaders[CurrentShaderID]);
+		m_CurrentShader = ShaderToUse;
 	}
-	ShaderProgram* MBGraphicsEngine::GetShader(std::string ShaderId)
+	std::shared_ptr<ShaderProgram> MBGraphicsEngine::GetShader(std::string ShaderId)
 	{
-		ShaderProgram* ReturnValue = nullptr;
+		std::shared_ptr<ShaderProgram> ReturnValue = nullptr;
 		if (LoadedShaders.find(ShaderId) != LoadedShaders.end())
 		{
 			ReturnValue = LoadedShaders[ShaderId];

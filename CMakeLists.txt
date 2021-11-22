@@ -143,7 +143,7 @@ target_include_directories("MBGraphicsEngine_SR" PRIVATE "$ENV{MBPM_PACKETS_INST
 add_executable(MBGETest ${COMMON_FILES} ${EXECUTABLE_FILES})
 target_include_directories("MBGETest" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/assimp/include/")
 target_include_directories("MBGETest" PRIVATE "$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/gl3w/include/")
-MBPM_ApplyTargetConfiguration("MBGETest" "STATIC" "RELEASE")
+MBPM_ApplyTargetConfiguration("MBGETest" "STATIC" "DEBUG")
 target_compile_features("MBGETest" PRIVATE cxx_std_17)
 target_link_libraries("MBGETest" ${COMMON_LIBRARIES})
 MBPM_LinkTargetPacketLibraries("MBGETest")

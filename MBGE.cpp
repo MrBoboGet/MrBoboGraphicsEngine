@@ -869,18 +869,18 @@ namespace MBGE
 		for (size_t i = 0; i <NumberOfTextures; i++)
 		{
 			aiString NewString;
-			AssimpMaterial->GetTexture(AssimpTextureType, i, &NewString);
-			if (NewString.length!= 0)
-			{
-				ReturnValue.push_back(std::string(NewString.C_Str()));
-			}
+AssimpMaterial->GetTexture(AssimpTextureType, i, &NewString);
+if (NewString.length != 0)
+{
+	ReturnValue.push_back(std::string(NewString.C_Str()));
+}
 		}
 		return(ReturnValue);
 	}
 	//TODO lägg till support för material attributes som inte bara är textures
-	Material::Material(void* MaterialData, std::string ModelDirectory,MBGraphicsEngine* AttachedEngine)
+	Material::Material(void* MaterialData, std::string ModelDirectory, MBGraphicsEngine* AttachedEngine)
 	{
-		AssciatedGraphicsEngine = AttachedEngine;
+		//AssciatedGraphicsEngine = AttachedEngine;
 		aiMaterial* AssimpMaterial = (aiMaterial*)MaterialData;
 		//vi går igenom allat textures och ser om den har någon
 		int NumberOfTextures = 0;
@@ -890,13 +890,13 @@ namespace MBGE
 			aiTextureType::aiTextureType_METALNESS,aiTextureType::aiTextureType_NONE,	aiTextureType::aiTextureType_NORMALS,
 			aiTextureType::aiTextureType_NORMAL_CAMERA,aiTextureType::aiTextureType_OPACITY,
 			aiTextureType::aiTextureType_REFLECTION,aiTextureType::aiTextureType_SHININESS,
-		aiTextureType::aiTextureType_SPECULAR,aiTextureType::aiTextureType_UNKNOWN};
+		aiTextureType::aiTextureType_SPECULAR,aiTextureType::aiTextureType_UNKNOWN };
 		for (size_t i = 0; i < TextureTypes.size(); i++)
 		{
 			NumberOfTextures += AssimpMaterial->GetTextureCount(TextureTypes[i]);
 		}
-		std::cout << "Namnet på materialet är: " << AssimpMaterial->GetName().C_Str() <<" och har "<<NumberOfTextures<<" Textures" << std::endl;
-		
+		std::cout << "Namnet på materialet är: " << AssimpMaterial->GetName().C_Str() << " och har " << NumberOfTextures << " Textures" << std::endl;
+
 		//vi laddar dem olika texturesen som vi letar efter, har den ej det så laddar vi istället andra specifika värden
 		std::vector<std::string> DiffuseTextures = GetTexturePaths(MaterialData, aiTextureType_DIFFUSE);
 		if (DiffuseTextures.size() != 0)
@@ -922,6 +922,7 @@ namespace MBGE
 		{
 			NormalTexture = ModelDirectory + NormalTextures[0];
 		}
+		p_LoadTextures(AttachedEngine);
 	}
 	template<typename T> bool VectorContains(const std::vector<T>& VectorToCheck, T Value)
 	{
@@ -934,10 +935,10 @@ namespace MBGE
 		}
 		return(false);
 	}
-	Material::Material(void* MaterialData,std::string PathToModel, std::vector<MaterialAttribute> NewMaterialAttributes, MBGraphicsEngine* AttachedEngine)
+	Material::Material(void* MaterialData, std::string PathToModel, std::vector<MaterialAttribute> NewMaterialAttributes, MBGraphicsEngine* AttachedEngine)
 	{
 		MaterialShaderAttributes = NewMaterialAttributes;
-		AssciatedGraphicsEngine = AttachedEngine;
+		//AssciatedGraphicsEngine = AttachedEngine;
 		if (VectorContains<MaterialAttribute>(NewMaterialAttributes, MaterialAttribute::DiffuseTexture));
 		{
 			DiffuseTexture = PathToModel + "Diffuse.png";
@@ -950,6 +951,13 @@ namespace MBGE
 		{
 			NormalTexture = PathToModel + "Normal.png";
 		}
+		p_LoadTextures(AttachedEngine);
+	}
+	void Material::p_LoadTextures(MBGraphicsEngine* AssociatedEngine)
+	{
+		MaterialTextures.push_back(AssociatedEngine->GetTexture(DiffuseTexture));
+		MaterialTextures.push_back(AssociatedEngine->GetTexture(SpecularTexture));
+		MaterialTextures.push_back(AssociatedEngine->GetTexture(NormalTexture));
 	}
 	void Material::SetUniforms(ShaderProgram* ProgramToModify)
 	{
@@ -958,40 +966,180 @@ namespace MBGE
 		//TODO optimesera det här så att det bara händer i konstrukturn och garantera att enginene aldrig deletar data som ett existerande ogbjekt använder
 		//ShaderProgram* CurrentShader = AssciatedGraphicsEngine->GetCurrentShader();
 		//CurrentShader->Bind();
-		if (VectorContains<MaterialAttribute>(MaterialShaderAttributes,MaterialAttribute::DiffuseTexture))
+		//Uniforms.SetUniforms(ProgramToModify);
+
+
+		//Legacy grejer
+		ProgramToModify->SetUniform1i("FragUni.UseDiffTex", false);
+		ProgramToModify->SetUniform1i("FragUni.UseSpecTex", false);
+		ProgramToModify->SetUniform1i("FragUni.UseNormTex", false);
+
+		for (size_t i = 0; i < MaterialShaderAttributes.size();i++)
 		{
-			Texture* DiffuseToUse = AssciatedGraphicsEngine->GetTexture(DiffuseTexture);
-			DiffuseToUse->Bind(0);
-			ProgramToModify->SetUniform1i("FragUni.UseDiffTex", true);
-			ProgramToModify->SetUniform1i("DiffuseTex", 0);
-		}
-		else
-		{
-			ProgramToModify->SetUniform1i("FragUni.UseDiffTex", false);
-		}
-		if (VectorContains<MaterialAttribute>(MaterialShaderAttributes, MaterialAttribute::SpecularTexture))
-		{
-			Texture* SpecToUse = AssciatedGraphicsEngine->GetTexture(SpecularTexture);
-			SpecToUse->Bind(1);
-			ProgramToModify->SetUniform1i("FragUni.UseSpecTex", true);
-			ProgramToModify->SetUniform1i("SpecTex", 1);
-		}
-		else
-		{
-			ProgramToModify->SetUniform1i("FragUni.UseSpecTex", false);
-		}
-		if (VectorContains<MaterialAttribute>(MaterialShaderAttributes, MaterialAttribute::NormalTexture))
-		{
-			Texture* NormalToUse = AssciatedGraphicsEngine->GetTexture(NormalTexture);
-			NormalToUse->Bind(2);
-			ProgramToModify->SetUniform1i("FragUni.UseNormTex", true);
-			ProgramToModify->SetUniform1i("NormalTex", 2);
-		}
-		else
-		{
-			ProgramToModify->SetUniform1i("FragUni.UseNormTex", false);
+			MaterialAttribute CurrentTextureType = MaterialShaderAttributes[i];
+			MaterialTextures[i]->Bind(i);
+			if (CurrentTextureType == MaterialAttribute::DiffuseTexture)
+			{
+				ProgramToModify->SetUniform1i("FragUni.UseDiffTex", true);
+				ProgramToModify->SetUniform1i("DiffuseTex", i);
+			}
+			else if (CurrentTextureType == MaterialAttribute::SpecularTexture)
+			{
+				ProgramToModify->SetUniform1i("FragUni.UseSpecTex", true);
+				ProgramToModify->SetUniform1i("SpecTex", i);
+			}
+			else if (CurrentTextureType == MaterialAttribute::NormalTexture)
+			{
+				ProgramToModify->SetUniform1i("FragUni.UseNormTex", true);
+				ProgramToModify->SetUniform1i("NormalTex", i);
+			}
 		}
 	}
+	//END Material
+
+	//BEGIN UniformBundle
+	std::unique_ptr<UniformValue> GetUniformValue(std::vector<std::unique_ptr<UniformValue>>&& ArrayValues)
+	{
+		return(std::unique_ptr<UniformValue>(new UniformValue_Array(ArrayValues)));
+	}
+	std::unique_ptr<UniformValue> GetUniformValue(std::map<std::string, std::unique_ptr<UniformValue>>&& MapValues)
+	{
+		return(std::unique_ptr<UniformValue>(new UniformValue_Aggregate(MapValues)));
+	}
+	std::unique_ptr<UniformValue> GetUniformValue(float Value)
+	{
+		return(std::unique_ptr<UniformValue>(new UniformValue_Float(Value)));
+	}
+	std::unique_ptr<UniformValue> GetUniformValue(int Value)
+	{
+		return(std::unique_ptr<UniformValue>(new UniformValue_Int(Value)));
+	}
+	std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBVector3<float> const& Value)
+	{
+		return(std::unique_ptr<UniformValue>(new UniformValue_Vec3(Value)));
+	}
+	std::unique_ptr<UniformValue> GetUniformValue(float x, float y, float z)
+	{
+		return(std::unique_ptr<UniformValue>(new UniformValue_Vec3(x,y,z)));
+	}
+	std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBMatrix4<float> const& Value)
+	{
+		return(std::unique_ptr<UniformValue>(new UniformValue_Mat4(Value)));
+	}
+	
+	
+	void swap(UniformBundle& LeftBundle, UniformBundle& RightBundle)
+	{
+		std::swap(LeftBundle, RightBundle);
+	}
+	UniformBundle::UniformBundle(UniformBundle&& BundleToSteal) noexcept
+	{
+		std::swap(*this, BundleToSteal);
+	}
+	UniformBundle::UniformBundle(UniformBundle const& BundleToCopy)
+	{
+		for (auto const& Value : BundleToCopy.m_UniformMap)
+		{
+			m_UniformMap[Value.first] = std::move(Value.second->Copy());
+		}
+	}
+	UniformBundle& UniformBundle::operator=(UniformBundle BundleToSteal)
+	{
+		std::swap(*this, BundleToSteal);
+		return(*this);
+	}
+	void UniformBundle::SetUniforms(ShaderProgram* ProgramToModify)
+	{
+		for (auto& Value : m_UniformMap)
+		{
+			Value.second->SetValue(Value.first, ProgramToModify);
+		}
+	}
+	void UniformBundle::SetUniform_Float(std::string const& UniformName, double FloatValue)
+	{
+		//throwa exception om inte finns?
+		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		{
+			m_UniformMap[UniformName]->SetFloat(FloatValue);
+		}
+		else
+		{
+			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Float(FloatValue)));
+		}
+	}
+	void UniformBundle::SetUniform_Int(std::string const& UniformName, int IntegerValue)
+	{
+		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		{
+			m_UniformMap[UniformName]->SetInt(IntegerValue);
+		}
+		else
+		{
+			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Int(IntegerValue)));
+		}
+	}
+	void UniformBundle::SetUniform_Vec3(std::string const& UniformName, float x, float y, float z)
+	{
+		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		{
+			m_UniformMap[UniformName]->SetVec3(x,y,z);
+		}
+		else
+		{
+			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Vec3(x,y,z)));
+		}
+	}
+	void UniformBundle::SetUniform_Vec3(std::string const& UniformName, MBMath::MBStaticVector3<float> const& VectorToSet)
+	{
+		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		{
+			m_UniformMap[UniformName]->SetVec3(VectorToSet[0],VectorToSet[1],VectorToSet[2]);
+		}
+		else
+		{
+			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Vec3(VectorToSet[0],VectorToSet[1],VectorToSet[2])));
+		}
+	}
+	void UniformBundle::SetUniform_Mat4(std::string const& UniformName, MBMath::MBMatrix4<float> const& MatrixToSet)
+	{
+		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		{
+			m_UniformMap[UniformName]->SetMat4(MatrixToSet);
+		}
+		else
+		{
+			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Mat4(MatrixToSet)));
+		}
+	}
+	void UniformBundle::AddUniformVector(std::string const& VectorName)
+	{
+		//borde den kolla hurvida den redan finns?
+		m_UniformMap[VectorName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Array()));
+	}
+	void UniformBundle::AddAggregateType(std::string const& UniformName)
+	{
+		m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Aggregate()));
+	}
+	
+	UniformValue& UniformBundle::GetUniform(std::string const& UniformName)
+	{
+		return(*m_UniformMap.at(UniformName));
+	}
+	void UniformBundle::AddUniform(std::string const& UniformName, std::unique_ptr<UniformValue> ValueToAdd)
+	{
+		m_UniformMap[UniformName] = std::move(ValueToAdd);
+	}
+
+
+	//END UniformBundle
+	//UniformValue_Array const& Material::GetUniformArray(std::string const& UniformName) const
+	//{
+	//
+	//}
+	//UniformValue_Aggregate const& Material::GetUniformStruct(std::string const& UniformName) const
+	//{
+	//
+	//}
 	//Bone
 	Bone::Bone(void* AssimpData)
 	{
@@ -2057,7 +2205,7 @@ namespace MBGE
 		LoadedShaders[ShaderID] = NewShader;
 		return(NewShader);
 	}
-	Texture* MBGraphicsEngine::GetTexture(std::string TextureFilePath)
+	std::shared_ptr<Texture> MBGraphicsEngine::GetTexture(std::string const& TextureFilePath)
 	{
 		if (LoadedTextures.find(TextureFilePath) != LoadedTextures.end())
 		{
@@ -2065,7 +2213,7 @@ namespace MBGE
 		}
 		else
 		{
-			Texture* NewTexture = new Texture(TextureFilePath);
+			std::shared_ptr<Texture> NewTexture = std::shared_ptr<Texture>(new Texture(TextureFilePath));
 			LoadedTextures[TextureFilePath] = NewTexture;
 			return(NewTexture);
 		}

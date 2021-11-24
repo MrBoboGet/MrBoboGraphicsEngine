@@ -565,6 +565,46 @@ namespace MBGE
 		}
 	}
 	//Mesh
+	Mesh::Mesh()
+	{
+
+	}
+	void Mesh::FillMeshData(std::vector<VertexAttributes> const& Attributes, const void* VertexData, size_t VertexDataSize, const void* FaceData, size_t FaceDataSize)
+	{
+		VAO.Bind();
+		
+		Buffer.Bind();
+
+		Layout = p_GetVertexLayout(Attributes);
+		Layout.Bind();
+
+		Buffer.ResizeBuffer(VertexDataSize, VertexData);
+		ArrayObject.Bind();
+		ArrayObject.ResizeBuffer(FaceDataSize, FaceData);
+		VAO.UnBind();
+		DrawVerticesCount = 6;
+		VertexSize = Layout.VertexSize();
+		VerticesCount = VertexDataSize / VertexSize;
+		//legacy, borde inte behövas längre men men
+		VerticesData = std::vector<unsigned char>((unsigned char*)VertexData, ((unsigned char*)VertexData) + VertexDataSize);
+	}
+	VertexLayout Mesh::p_GetVertexLayout(std::vector<VertexAttributes> const& AttributeOrder)
+	{
+		VertexLayout ReturnValue;
+		for (size_t i = 0; i < AttributeOrder.size(); i++)
+		{
+			VertexAttributes CurrentAttribute = AttributeOrder[i];
+			if (CurrentAttribute == VertexAttributes::TextureCoordinates)
+			{
+				ReturnValue.AddAttribute(4, 2, DataTypes::Float);
+			}
+			else if (CurrentAttribute == VertexAttributes::Position)
+			{
+				ReturnValue.AddAttribute(4, 3, DataTypes::Float);
+			}
+		}
+		return(ReturnValue);
+	}
 	Mesh::Mesh(int VerticesToLoadCount, int VertexToLoadSize, void* VertexToLoadData, int ArrayObjectSize, unsigned int* ArrayObjectData)
 		: Buffer(VBTypes::DynamicDraw, VerticesToLoadCount* VertexToLoadSize, VertexToLoadData), ArrayObject(ArrayObjectSize, ArrayObjectData)
 	{
@@ -793,8 +833,9 @@ namespace MBGE
 		VAO.Bind();
 		Buffer.Bind();
 		ArrayObject.Bind();
-		float* TestPointer = (float*)&VerticesData[0];
-		Buffer.FillBuffer(0, VerticesCount * VertexSize, &VerticesData[0]);
+		//eftersom mesh datan mer eller mindre aldrig ändras så behöver vi inte fylla om den hela tiden
+		//float* TestPointer = (float*)&VerticesData[0];
+		//Buffer.FillBuffer(0, VerticesCount * VertexSize, &VerticesData[0]);
 		glDrawElements(GL_TRIANGLES, DrawVerticesCount, GL_UNSIGNED_INT, 0);
 		VAO.UnBind();
 		glCheckError();
@@ -1382,6 +1423,72 @@ if (NewString.length != 0)
 	//	NodeAnimation AssociatedNodeTransformation = NodeAnimations[Node];
 	//	return(AssociatedNodeTransformation.GetTransformation(TimeInSec));
 	//}
+
+
+	//BEGIN Transform
+	MBMath::MBMatrix4<float> Transform::GetModelMatrix() const
+	{
+		MBMath::MBMatrix4<float> ScalingMatrix;
+		MBMath::MBMatrix4<float> RotationMatrix;
+		MBMath::MBMatrix4<float> TranslationMatrix;
+		
+		ScalingMatrix(0,0) = m_Scalings[0];
+		ScalingMatrix(1,1) = m_Scalings[1];
+		ScalingMatrix(2,2) = m_Scalings[2];
+
+		TranslationMatrix(0, 3) = m_WorldPosition[0];
+		TranslationMatrix(1, 3) = m_WorldPosition[1];
+		TranslationMatrix(2, 3) = m_WorldPosition[2];
+
+		RotationMatrix = MBMath::GetRotationMatrix<float>(m_Rotation[0], m_Rotation[1], m_Rotation[2]);
+
+		return(ScalingMatrix * RotationMatrix * TranslationMatrix);
+	}
+	void Transform::SetRotation(float XRotation, float YRotation, float ZRotation)
+	{
+		m_Rotation[0] = XRotation;
+		m_Rotation[1] = YRotation;
+		m_Rotation[2] = ZRotation;
+	}
+	void Transform::SetRotation(MBMath::MBVector3<float> const& RotationToSet)
+	{
+		m_Rotation = RotationToSet;
+	}
+	MBMath::MBVector3<float> Transform::GetRotation() const
+	{
+		return(m_Rotation);
+	}
+	void Transform::SetPosition(MBMath::MBVector3<float> const& PositionToSet)
+	{
+		m_WorldPosition = PositionToSet;
+	}
+	void Transform::SetPosition(float x, float y, float z)
+	{
+		m_WorldPosition[0] = x;
+		m_WorldPosition[1] = y;
+		m_WorldPosition[2] = z;
+	}
+	MBMath::MBVector3<float> Transform::GetPosition() const
+	{
+		return(m_WorldPosition);
+	}
+	void Transform::SetScaling(MBMath::MBVector3<float> const& PositionToSet)
+	{
+		m_Scalings = PositionToSet;
+	}
+	void Transform::SetScaling(float x, float y, float z)
+	{
+		m_Scalings[0] = x;
+		m_Scalings[1] = y;
+		m_Scalings[2] = z;
+	}
+	MBMath::MBVector3<float> Transform::GetScaling() const
+	{
+		return(m_Scalings);
+	}
+	//END Transform
+
+
 	//Model
 	void Model::Rotate(float DegreesToRotate, MBMath::MBVector3<float> const& RotationAxis)
 	{
@@ -1473,7 +1580,7 @@ if (NewString.length != 0)
 		//lägger till nodes, populatar ben data som meshesen behöver
 		TopNode = Node(LoadedScene->mRootNode);
 		m_NumberOfNodes = TopNode.GetNumberOfChildren() + 1;
-		InverseGlobalMatrix = TopNode.GetLocalTransformation().GetInverse();
+		m_InverseGlobalMatrix = TopNode.GetLocalTransformation().GetInverse();
 		//lägger till animationer
 		for (size_t i = 0; i < LoadedScene->mNumAnimations; i++)
 		{
@@ -1511,15 +1618,17 @@ if (NewString.length != 0)
 	{
 		std::vector<MBMath::MBMatrix4<float>> Transformations = TopNode.GetAnimationTransformations(ModelAnimationToDraw.BoneAnimation, AnimationTimeInSec);
 		std::unordered_map<std::string, size_t> NodeIDMap = TopNode.GetNodeIDMap();
-		AssociatedEngine->CameraObject.SetModelMatrix(MBMath::MBMatrix4<float>());
-		AssociatedEngine->CameraObject.Update();
+
+		AssociatedEngine->CameraObject.SetModelMatrix(ModelTransform.GetModelMatrix());
+		AssociatedEngine->CameraObject.Update(m_ModelShader.get());
+
 		MBMath::MBMatrix4<float> StandardMatrix = MBMath::MBMatrix4<float>();
 		ShaderToUse->SetUniformMat4f("BoneTransforms[0]", StandardMatrix.GetContinousData());
 		for (auto const& CurrentBone : m_BoneMap)
 		{
 			size_t TransformationIndex = NodeIDMap[CurrentBone.second.BoneID];
 			//MBMath::MBMatrix4<float> BoneTransform = AssociatedModel->InverseGlobalMatrix * NodeTransformation * AssociatedBone->OffsetMatrix;
-			MBMath::MBMatrix4<float> NewTransformation = InverseGlobalMatrix * Transformations[TransformationIndex] * CurrentBone.second.OffsetMatrix;
+			MBMath::MBMatrix4<float> NewTransformation = m_InverseGlobalMatrix * Transformations[TransformationIndex] * CurrentBone.second.OffsetMatrix;
 			ShaderToUse->SetUniformMat4f("BoneTransforms[" + std::to_string(CurrentBone.second.BoneIndex) + "]",NewTransformation.GetContinousData());
 		}
 		//Bonesen är uppdaterade, nu till rita alla meshes
@@ -1547,7 +1656,7 @@ if (NewString.length != 0)
 		if (NodeToProcess->MeshIndexes.size() > 0)
 		{
 			AssociatedEngine->CameraObject.SetModelMatrix(ModelMatrix);
-			AssociatedEngine->CameraObject.Update();
+			AssociatedEngine->CameraObject.Update(m_ModelShader.get());
 		}
 		for (size_t i = 0; i < NodeToProcess->MeshIndexes.size(); i++)
 		{
@@ -1587,6 +1696,65 @@ if (NewString.length != 0)
 			p_DrawDefault();
 		}
 	}
+	//BEGIN SpriteModel
+	SpriteModel::SpriteModel(std::string const& TexturePath, MBGraphicsEngine* AssociatedEngine)
+	{
+		m_AssociatedEngine = AssociatedEngine;
+		m_SpriteTexture = AssociatedEngine->GetTexture(TexturePath);
+
+		float Width = 20;
+		float AspectRation = 1;
+		float Height = Width * AspectRation;
+		float VertexData[20];
+		//0
+		VertexData[0] = -Width / 2;
+		VertexData[1] = Height/2;
+		VertexData[2] = 0;
+		VertexData[3] = 0;
+		VertexData[4] = 1;
+		//
+		//1
+		VertexData[5] = Width / 2;
+		VertexData[6] = Height / 2;
+		VertexData[7] = 0;
+		VertexData[8] = 1;
+		VertexData[9] = 1;
+		//
+		//2
+		VertexData[10] = -Width / 2;
+		VertexData[11] = -Height / 2;
+		VertexData[12] = 0;
+		VertexData[13] = 0;
+		VertexData[14] = 0;
+		//
+		//3
+		VertexData[15] = Width / 2;
+		VertexData[16] = -Height / 2;
+		VertexData[17] = 0;
+		VertexData[18] = 1;
+		VertexData[19] = 0;
+		//
+		uint32_t FaceData[6] = { 0,1,2,1,2,3 };
+		m_SpriteMesh.FillMeshData({ VertexAttributes::Position,VertexAttributes::TextureCoordinates }, VertexData, sizeof(VertexData), FaceData, 6);
+	}
+	void SpriteModel::SetShader(std::shared_ptr<ShaderProgram> ShaderToUse)
+	{
+		m_SpriteShader = ShaderToUse;
+	}
+	void SpriteModel::Draw()
+	{
+		m_SpriteShader->Bind();
+		//m_SpriteShader->SetUniform1i("OurTexture", 0);
+		m_SpriteTexture->Bind(0);
+		//m_SpriteShader->PrintActiveAttributesAndUniforms();
+		m_AssociatedEngine->CameraObject.SetModelMatrix(ModelTransform.GetModelMatrix());
+		m_AssociatedEngine->CameraObject.Update(m_SpriteShader.get());
+
+		m_SpriteMesh.Draw();
+	}
+	
+	//END SpriteModel
+
 	//framebuffer
 	FrameBuffer::FrameBuffer(int Width,int Height)
 	{
@@ -1680,6 +1848,26 @@ if (NewString.length != 0)
 		//NewProjectionMatrix.PrintWolframMatrix();
 		ProjectionMatrix = NewProjectionMatrix;
 	}
+	void Camera::SetOrtographicProjection(float Width, float Height)
+	{
+		const float XMax = Width;
+		const float XMin = -Width;
+		const float YMax = Height;
+		const float YMin = -Height;
+		const float FarPlane = 10000;
+		const float NearPlane = 0.01;
+		MBMath::MBMatrix4<float> NewProjectionMatrix = MBMath::MBMatrix4<float>();
+		NewProjectionMatrix(0, 0) = 2/(XMax-XMin);
+		NewProjectionMatrix(1, 1) = 2/(YMax-YMin);
+		NewProjectionMatrix(2, 2) = -2 / (FarPlane - NearPlane);	
+		NewProjectionMatrix(0, 3) = -(XMax + XMin) / (XMax - XMin);
+		NewProjectionMatrix(1, 3) = -(YMax + YMin) / (YMax - YMin);
+		NewProjectionMatrix(2, 3) = -(FarPlane + NearPlane) / (FarPlane - NearPlane);
+		NewProjectionMatrix(3, 3) = 1;
+		//std::cout << "New projection matirx:"<<std::endl << NewProjectionMatrix << std::endl;
+		//NewProjectionMatrix.PrintWolframMatrix();
+		ProjectionMatrix = NewProjectionMatrix;
+	}
 	MBMath::MBVector3<float> Camera::GetRotation()
 	{
 		return(Rotation);
@@ -1727,13 +1915,14 @@ if (NewString.length != 0)
 				MatrixIntermediary(i, j) = ModelMatrix(i, j);
 			}
 		}
+		//Projection* View* Model
 		//std::cout << "Matrix intermediary" << std::endl;
 		//std::cout << MatrixIntermediary << std::endl;
 		//std::cout << "Inverse:" << std::endl << MBMath::GetInverse<float, 3>(MatrixIntermediary) << std::endl;
 		MatrixIntermediary = MBMath::GetInverse<float,3>(MatrixIntermediary).Transpose();
 		NormalMatrix = MBMath::MBMatrix4<float>(MatrixIntermediary);
 	}
-	void Camera::Update()
+	void Camera::Update(ShaderProgram* ShaderToUpdate)
 	{
 		MBMath::MBMatrix4<float> TranslationMatrix = MBMath::MBMatrix4<float>();
 		TranslationMatrix(0, 3) = -WorldSpaceCoordinates[0];
@@ -1750,13 +1939,24 @@ if (NewString.length != 0)
 		BaseChangeMatrix(2, 1) = Facing[1];
 		BaseChangeMatrix(2, 2) = Facing[2];
 		MBMath::MBMatrix4<float> ViewMatrix = BaseChangeMatrix * TranslationMatrix;
-		std::shared_ptr<ShaderProgram> CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
-		CurrentShader->Bind();
-		CurrentShader->SetUniformMat4f("Model", ModelMatrix.GetContinousData());
-		CurrentShader->SetUniformMat4f("View", ViewMatrix.GetContinousData());
-		CurrentShader->SetUniformMat4f("Projection", ProjectionMatrix.GetContinousData());
-		CurrentShader->SetUniformMat4f("NormalMatrix", NormalMatrix.GetContinousData());
-		CurrentShader->SetUniformVec3("ViewPos", WorldSpaceCoordinates[0], WorldSpaceCoordinates[1], WorldSpaceCoordinates[2]);
+
+		MBMath::MBStaticVector<float, 4> TestPostion;
+		TestPostion[0] = -0.5;
+		TestPostion[1] = 0.5;
+		TestPostion[2] = 0;
+		TestPostion[3] = 1;
+		MBMath::MBStaticMatrix4<float> DEBUG_TotalTransformation = (ProjectionMatrix * ViewMatrix * ModelMatrix);
+		MBMath::MBStaticVector<float, 4> DEBUG_Result = DEBUG_TotalTransformation *TestPostion;
+		//std::cout << DEBUG_TotalTransformation << std::endl;
+		//std::cout << DEBUG_Result << std::endl;
+
+		//std::shared_ptr<ShaderProgram> CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
+		ShaderToUpdate->Bind();
+		ShaderToUpdate->SetUniformMat4f("Model", ModelMatrix.GetContinousData());
+		ShaderToUpdate->SetUniformMat4f("View", ViewMatrix.GetContinousData());
+		ShaderToUpdate->SetUniformMat4f("Projection", ProjectionMatrix.GetContinousData());
+		ShaderToUpdate->SetUniformMat4f("NormalMatrix", NormalMatrix.GetContinousData());
+		ShaderToUpdate->SetUniformVec3("ViewPos", WorldSpaceCoordinates[0], WorldSpaceCoordinates[1], WorldSpaceCoordinates[2]);
 	}
 	MBMath::MBMatrix4<float> Camera::GetTransformationMatrix()
 	{
@@ -1782,8 +1982,9 @@ if (NewString.length != 0)
 	LightSource::LightSource(MBGraphicsEngine* AttachedEngine)
 	{
 		AssociatedGraphicsEngine = AttachedEngine;
+		//m_Bundle.AddUniform("LightSources",)
 	}
-	void LightSource::SetLightning(int Position)
+	void LightSource::SetLightning(int Position,ShaderProgram* ProgramToUpdate)
 	{
 		/*
 			vec3 Color;
@@ -1793,12 +1994,14 @@ if (NewString.length != 0)
 			float SpecExp;
 		*/
 		std::string StringPosition = std::to_string(Position);
-		std::shared_ptr<ShaderProgram> CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
-		CurrentShader->SetUniformVec3("LightSources[" + StringPosition + "].WorldPos", WorldPosition[0], WorldPosition[1], WorldPosition[2]);
-		CurrentShader->SetUniformVec3("LightSources[" + StringPosition + "].Color", LightColor[0], LightColor[1], LightColor[2]);
-		CurrentShader->SetUniform1f("LightSources[" + StringPosition + "].AmbStr",AmbienceStrength);
-		CurrentShader->SetUniform1f("LightSources[" + StringPosition + "].SpecStr",SpecularStrength);
-		CurrentShader->SetUniform1f("LightSources[" + StringPosition + "].SpecExp",SpecularExp);
+		//std::shared_ptr<ShaderProgram> CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
+		
+		
+		ProgramToUpdate->SetUniformVec3("LightSources[" + StringPosition + "].WorldPos", WorldPosition[0], WorldPosition[1], WorldPosition[2]);
+		ProgramToUpdate->SetUniformVec3("LightSources[" + StringPosition + "].Color", LightColor[0], LightColor[1], LightColor[2]);
+		ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].AmbStr",AmbienceStrength);
+		ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].SpecStr",SpecularStrength);
+		ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].SpecExp",SpecularExp);
 	}
 	//Texture
 	Texture::Texture(std::string FilePath)
@@ -2138,12 +2341,12 @@ if (NewString.length != 0)
 		LightSources.push_back(NewLightSource);
 		return(NewLightSource);
 	}
-	void MBGraphicsEngine::UpdateUniforms()
+	void MBGraphicsEngine::UpdateUniforms(ShaderProgram* ProgramToUpdate)
 	{
-		CameraObject.Update();
+		CameraObject.Update(ProgramToUpdate);
 		for (size_t i = 0; i < LightSources.size(); i++)
 		{
-			LightSources[i]->SetLightning(i);
+			LightSources[i]->SetLightning(i,ProgramToUpdate);
 		}
 	}
 	void MBGraphicsEngine::DrawPostProcessing()

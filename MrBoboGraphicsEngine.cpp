@@ -27,7 +27,8 @@ int main()
 	//std::cout << std::filesystem::current_path() << std::endl;
 	MBGE::MBGraphicsEngine GraphicEngine;
 	std::cout << "MBGETest 3" << std::endl;
-	GraphicEngine.CameraObject.SetFrustum(0.1, 1000, -0.1, 0.1, -0.1, 0.1);
+	//GraphicEngine.CameraObject.SetFrustum(0.1, 100000, -0.1, 0.1, -0.1, 0.1);
+	GraphicEngine.CameraObject.SetOrtographicProjection(100, 75);
 	GraphicEngine.CameraObject.WorldSpaceCoordinates = MBMath::MBVector3<float>(0,0,-10);
 
 	clock_t Timer = clock();
@@ -60,9 +61,24 @@ int main()
 	int PrintDeltaIncrement = 0;
 	std::vector<MBGE::MaterialAttribute> TigerAttributes = { MBGE::MaterialAttribute::DiffuseTexture };
 	MBGE::Model* TigerModel = GraphicEngine.LoadModel("./Resources/Models/Tiger/source/Tiger.fbx", TigerAttributes);
+	MBGE::Model* TigerModel2 = GraphicEngine.LoadModel("./Resources/Models/Tiger/source/Tiger.fbx", TigerAttributes);
 	TigerModel->SetShader(TigerShader);
+
+	TigerModel->ModelTransform.SetScaling(1, 1, 1);
+	TigerModel->ModelTransform.SetPosition(0, 0, 0);
+	TigerModel->ModelTransform.SetRotation(0, 0, 0);
+
+	TigerModel2->SetShader(TigerShader);
+	TigerModel2->ModelTransform.SetScaling(1, 1, 1);
+	TigerModel2->ModelTransform.SetPosition(150, 0, 0);
+	TigerModel2->ModelTransform.SetRotation(0, 0, 0);
 	bool ZWasPressed = false;
 	bool XWasPressed = false;
+
+	MBGE::SpriteModel TestSprite = MBGE::SpriteModel("./Resources/Textures/Test.png",&GraphicEngine);
+	std::shared_ptr<MBGE::ShaderProgram> SpriteShader = GraphicEngine.LoadShader("SpriteShader", "./Resources/Shaders/VertexTextureTest.vert","./Resources/Shaders/FragmentTextureTest.frag");
+	TestSprite.SetShader(SpriteShader);
+
 	while (true)
 	{
 		GraphicEngine.PollEvents();
@@ -158,8 +174,10 @@ int main()
 		}
 		TestLightning->WorldPosition = GraphicEngine.CameraObject.WorldSpaceCoordinates;
 		//*/
-		GraphicEngine.UpdateUniforms();
+		GraphicEngine.UpdateUniforms(TigerShader.get());
 		TigerModel->Draw();
+		//TigerModel2->Draw();
+		TestSprite.Draw();
 		//TestModel->Draw();
 		//ChesireModel->Draw();
 		//GraphicEngine.SetCurrentShader("Debug");

@@ -197,6 +197,7 @@ namespace MBGE
 	enum class VertexAttributes
 	{
 		Tangent,
+		Position,
 		Bitangent,
 		VertexColors,
 		VertexNormal,
@@ -249,12 +250,16 @@ namespace MBGE
 		VertexLayout Layout;
 		VertexBuffer Buffer;
 		ElementBufferObject ArrayObject;
-		Model* AssociatedModel = nullptr;
+		//Model* AssociatedModel = nullptr;
 		//std::vector<Vec3Data> SavedPositionData = {};
+		VertexLayout p_GetVertexLayout(std::vector<VertexAttributes> const& AttributeOrder);
 	public:
 		//TODO fixa faktiska copy semantic etc för mesh objektet
 		Mesh(int VerticesToLoadCount, int VertexToLoadSize, void* VertexToLoadData, int ArrayObjectSize, unsigned int* ArrayObjectData);
 		Mesh(void* MeshObject,std::vector<VertexAttributes> const& AttributeOrder, std::unordered_map<std::string,Bone> const& BoneMap, size_t* OutMaterialIndex);
+		Mesh();
+		void FillMeshData(std::vector<VertexAttributes> const& Attributes, const void* VertexData, size_t VertexDataSize, const void* FaceData, size_t FaceDataSize);
+
 		void Rotate(float DegressToRotate, MBMath::MBVector3<float> const& AxisToRotate);
 		void Draw();
 		//void SavePositions();
@@ -744,11 +749,37 @@ namespace MBGE
 		double GetDurationInSec() { return(TickDuration / TicksPerSec); };
 		ModelAnimation(void* AssimpData);
 	};
+
+	class Transform
+	{
+	private:
+		bool m_HasChanged = false;
+		MBMath::MBVector3<float> m_WorldPosition = {0,0,0};
+		MBMath::MBVector3<float> m_Scalings = {1,1,1};
+		MBMath::MBVector3<float> m_Rotation = {0,0,0}; //euler vinklar
+
+		
+	public:
+		MBMath::MBMatrix4<float> GetModelMatrix() const;
+		
+		void SetRotation(float XRotation, float YRotation, float ZRotation);
+		void SetRotation(MBMath::MBVector3<float> const& RotationToSet);
+		MBMath::MBVector3<float> GetRotation() const;
+
+		void SetPosition(MBMath::MBVector3<float> const& PositionToSet);
+		void SetPosition(float x,float y,float z);
+		MBMath::MBVector3<float> GetPosition() const;
+
+		void SetScaling(MBMath::MBVector3<float> const& PositionToSet);
+		void SetScaling(float x, float y, float z);
+		MBMath::MBVector3<float> GetScaling() const;
+	};
+
 	class Model
 	{
 	private:
 		//eftersom position och eventuellt vinklar är sådant som vi inte nödvändigtvis vill kunna ändra utan vidare
-		MBMath::MBVector3<float> WorldPosition = MBMath::MBVector3<float>(0, 0, 0);
+		//MBMath::MBVector3<float> WorldPosition = MBMath::MBVector3<float>(0, 0, 0);
 		
 		std::vector<std::unique_ptr<Mesh>> ModelMeshes = {};
 		std::vector<size_t> m_MeshMaterialIndexes = {};
@@ -771,13 +802,14 @@ namespace MBGE
 		void p_DrawDefault_Node(const Node* NodeToProcess, MBMath::MBMatrix4<float> ParentTransformation);
 		
 		//Mesh* GetMesh(unsigned int MeshIndex);
+		MBMath::MBMatrix4<float> m_InverseGlobalMatrix = MBMath::MBMatrix4<float>();
 	public:
 
 		//std::vector<std::string> NodeNames = {};
+		Transform ModelTransform;
 		Model(std::string const& ModelPath, MBGraphicsEngine* AttachedEngine);
 		Model(std::string const& ModelPath, std::vector<MaterialAttribute> MaterialAttributes, MBGraphicsEngine* AttachedEngine);
 		
-		MBMath::MBMatrix4<float> InverseGlobalMatrix = MBMath::MBMatrix4<float>();
 		//std::string ModelShader = "";
 		MBGraphicsEngine* AssociatedEngine = nullptr;
 
@@ -793,6 +825,19 @@ namespace MBGE
 		//Material* GetMaterial(unsigned int MaterialIndex);
 		//void SetRotation(float XRotation, float YRotation, float ZRotation);
 		//MBMath::MBVector3<float> GetRotation();
+	};
+	class SpriteModel
+	{
+	private:
+		Mesh m_SpriteMesh;
+		std::shared_ptr<Texture> m_SpriteTexture = nullptr;
+		std::shared_ptr<ShaderProgram> m_SpriteShader = nullptr;
+		MBGraphicsEngine* m_AssociatedEngine = nullptr;
+	public:
+		Transform ModelTransform;
+		SpriteModel(std::string const& TexturePath, MBGraphicsEngine* AssociatedEngine);
+		void SetShader(std::shared_ptr<ShaderProgram> ShaderToUse);
+		void Draw();
 	};
 	class FrameBuffer
 	{
@@ -826,12 +871,13 @@ namespace MBGE
 		void SetRotation(float XaxisRotation, float YaxisRotation, float ZAxisRotation);
 		void SetRotation(MBMath::MBVector3<float> const& NewRotation);
 		void SetModelMatrix(MBMath::MBMatrix4<float> const& ModelMatrix);
-		void Update();
+		void Update(ShaderProgram* ShaderToUpdate);
 		MBMath::MBVector3<float> GetDirection();
 		MBMath::MBVector3<float> GetRightAxis();
 		MBMath::MBVector3<float> GetUpAxis();
 		bool IsOrtoGraphic = false;
 		void SetFrustum(float NearPlane, float FarPlane, float XMin, float XMax, float YMin, float YMax);
+		void SetOrtographicProjection(float Width,float Height);
 		Camera();
 		Camera(MBGraphicsEngine* EngineToAttach);
 		MBMath::MBMatrix4<float> GetTransformationMatrix();
@@ -840,13 +886,15 @@ namespace MBGE
 	{
 	private:
 		MBGraphicsEngine* AssociatedGraphicsEngine;
+
+		UniformBundle m_Bundle;
 	public:
 		MBMath::MBVector3<float> WorldPosition = MBMath::MBVector3<float>(0, 0, 0);
 		MBMath::MBVector3<float> LightColor = MBMath::MBVector3<float>(1, 1, 1);
 		float AmbienceStrength = 0.1;
 		float SpecularExp = 32;
 		float SpecularStrength = 0.3;
-		void SetLightning(int Position);
+		void SetLightning(int Position,ShaderProgram* ProgramToUpdate);
 		LightSource(MBGraphicsEngine* AttachedEngine);
 	};
 	class Texture
@@ -886,7 +934,7 @@ namespace MBGE
 		double GetDeltaTimeInSec() { return(DeltaTime); };
 		std::string PostProcessingShaderID = "Default_PPS";
 		Camera CameraObject = Camera(this);
-		void UpdateUniforms();
+		void UpdateUniforms(ShaderProgram* ProgramToUpdate);
 		std::shared_ptr<ShaderProgram> GetCurrentShader();
 		LightSource* AddLightSource();
 		//void SetCurrentShader(std::string ShaderID);

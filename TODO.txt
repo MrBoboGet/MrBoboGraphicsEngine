@@ -1,0 +1,1 @@
+1. När man roterar modellen med Transform objetectet så blir lightningen fel, jag misstänke att det är pågrund av att Normal matrixen blir fel, men har inte undersökt närmare. 

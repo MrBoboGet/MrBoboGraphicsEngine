@@ -212,80 +212,63 @@ namespace MBGE
 		glUseProgram(m_ProgramHandle);
 		glCheckError();
 	}
+	constexpr bool MBGE_CHECK_UNIFORM_VALIDITY = false;
+	void ShaderProgram::p_HandleInvalidPosition(int PositionToCheck, std::string const& UniformName)
+	{
+		if (PositionToCheck == -1)
+		{
+			if constexpr (MBGE_CHECK_UNIFORM_VALIDITY)
+			{
+				std::cout << "Invalid uniform: " << UniformName << std::endl;
+			}
+		}
+	}
 	void ShaderProgram::SetUniform4f(std::string const& UniformName, float x, float y, float z, float w)
 	{
 		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
-		if (UniformLocation == -1)
-		{
-			//invalid locatiopn printa
-			std::cout << "Invalid uniform: " << UniformName<<std::endl;
-		}
+		p_HandleInvalidPosition(UniformLocation, UniformName);
 		glUniform4f(UniformLocation, x, y, z, w);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniform4i(std::string const& UniformName, int x, int y, int z, int w)
 	{
 		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
-		if (UniformLocation == -1)
-		{
-			//invalid locatiopn printa
-			std::cout << "Invalid uniform: " << UniformName << std::endl;
-		}
+		p_HandleInvalidPosition(UniformLocation, UniformName);
 		glUniform4f(UniformLocation, x, y, z, w);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniform1i(std::string const& UniformName, int x)
 	{
 		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
-		if (UniformLocation == -1)
-		{
-			//invalid locatiopn printa
-			std::cout << "Invalid uniform: " << UniformName << std::endl;
-		}
+		p_HandleInvalidPosition(UniformLocation, UniformName);
 		glUniform1i(UniformLocation, x);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniform1f(std::string const& UniformName, float x)
 	{
 		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
-		if (UniformLocation == -1)
-		{
-			//invalid locatiopn printa
-			std::cout << "Invalid uniform: " << UniformName << std::endl;
-		}
+		p_HandleInvalidPosition(UniformLocation, UniformName);
 		glUniform1f(UniformLocation, x);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniformMat4f(std::string const& UniformName, const float* RowMajorData)
 	{
 		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
-		if (UniformLocation == -1)
-		{
-			//invalid locatiopn printa
-			std::cout << "Invalid uniform: " << UniformName << std::endl;
-		}
+		p_HandleInvalidPosition(UniformLocation, UniformName);
 		glUniformMatrix4fv(UniformLocation, 1, GL_TRUE, RowMajorData);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniformVec3(std::string const& UniformName, float x, float y, float z)
 	{
 		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
-		if (UniformLocation == -1)
-		{
-			//invalid locatiopn printa
-			std::cout << "Invalid uniform: " << UniformName << std::endl;
-		}
+		p_HandleInvalidPosition(UniformLocation, UniformName);
 		glUniform3f(UniformLocation, x, y, z);
 		glCheckError();
 	}
 	void ShaderProgram::SetUniformVec4(std::string const& UniformName, float x, float y, float z,float w)
 	{
 		int UniformLocation = glGetUniformLocation(m_ProgramHandle, UniformName.c_str());
-		if (UniformLocation == -1)
-		{
-			//invalid locatiopn printa
-			std::cout << "Invalid uniform: " << UniformName << std::endl;
-		}
+		p_HandleInvalidPosition(UniformLocation, UniformName);
 		glUniform4f(UniformLocation, x, y, z,w);
 		glCheckError();
 	}
@@ -1038,138 +1021,477 @@ if (NewString.length != 0)
 	}
 	//END Material
 
-	//BEGIN UniformBundle
-	std::unique_ptr<UniformValue> GetUniformValue(std::vector<std::unique_ptr<UniformValue>>&& ArrayValues)
+	//BEGIN UniformValue
+	void swap(UniformValue& LeftValue, UniformValue& RightValue) noexcept
 	{
-		return(std::unique_ptr<UniformValue>(new UniformValue_Array(ArrayValues)));
+		std::swap(LeftValue.m_Type, RightValue.m_Type);
+		std::swap(LeftValue.m_DataPointer, RightValue.m_DataPointer);
 	}
-	std::unique_ptr<UniformValue> GetUniformValue(std::map<std::string, std::unique_ptr<UniformValue>>&& MapValues)
+	void UniformValue::p_FreeData()
 	{
-		return(std::unique_ptr<UniformValue>(new UniformValue_Aggregate(MapValues)));
-	}
-	std::unique_ptr<UniformValue> GetUniformValue(float Value)
-	{
-		return(std::unique_ptr<UniformValue>(new UniformValue_Float(Value)));
-	}
-	std::unique_ptr<UniformValue> GetUniformValue(int Value)
-	{
-		return(std::unique_ptr<UniformValue>(new UniformValue_Int(Value)));
-	}
-	std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBVector3<float> const& Value)
-	{
-		return(std::unique_ptr<UniformValue>(new UniformValue_Vec3(Value)));
-	}
-	std::unique_ptr<UniformValue> GetUniformValue(float x, float y, float z)
-	{
-		return(std::unique_ptr<UniformValue>(new UniformValue_Vec3(x,y,z)));
-	}
-	std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBMatrix4<float> const& Value)
-	{
-		return(std::unique_ptr<UniformValue>(new UniformValue_Mat4(Value)));
-	}
-	
-	
-	void swap(UniformBundle& LeftBundle, UniformBundle& RightBundle)
-	{
-		std::swap(LeftBundle, RightBundle);
-	}
-	UniformBundle::UniformBundle(UniformBundle&& BundleToSteal) noexcept
-	{
-		std::swap(*this, BundleToSteal);
-	}
-	UniformBundle::UniformBundle(UniformBundle const& BundleToCopy)
-	{
-		for (auto const& Value : BundleToCopy.m_UniformMap)
+		if (m_DataPointer == nullptr)
 		{
-			m_UniformMap[Value.first] = std::move(Value.second->Copy());
+			return;
+		}
+		if (m_Type == DataTypes::Float)
+		{
+			delete &p_GetData<float>();
+		}
+		else if (m_Type == DataTypes::Int)
+		{
+			delete& p_GetData<int>();
+		}
+		else if (m_Type == DataTypes::Matrix4)
+		{
+			delete& p_GetData<MBMath::MBMatrix4<float>>();
+		}
+		else if (m_Type == DataTypes::Vec3)
+		{
+			delete& p_GetData<MBMath::MBVector3<float>>();
+		}
+		else if (m_Type == DataTypes::Array)
+		{
+			delete& p_GetData<std::vector<UniformValue>>();
+		}
+		else if (m_Type == DataTypes::Struct)
+		{
+			delete& p_GetData<std::map<std::string,UniformValue>>();
+		}
+		else if (m_Type == DataTypes::Null)
+		{
+			assert(m_DataPointer == nullptr);
+		}
+		else
+		{
+			throw std::domain_error("Corrupted UniformValue data");
 		}
 	}
-	UniformBundle& UniformBundle::operator=(UniformBundle BundleToSteal)
+	void* UniformValue::p_CloneData() const
 	{
-		std::swap(*this, BundleToSteal);
+		if (m_Type == DataTypes::Float)
+		{
+			return(new float(p_GetData<float>()));
+		}
+		else if (m_Type == DataTypes::Int)
+		{
+			return(new float(p_GetData<int>()));
+		}
+		else if (m_Type == DataTypes::Matrix4)
+		{
+			return(new MBMath::MBMatrix4<float>(p_GetData<MBMath::MBMatrix4<float>>()));
+		}
+		else if (m_Type == DataTypes::Vec3)
+		{
+			return(new MBMath::MBVector3<float>(p_GetData<MBMath::MBVector3<float>>()));
+		}
+		else if (m_Type == DataTypes::Array)
+		{
+			return(new std::vector<UniformValue>(p_GetData<std::vector<UniformValue>>()));
+		}
+		else if (m_Type == DataTypes::Struct)
+		{
+			return(new std::map<std::string,UniformValue>(p_GetData<std::map<std::string,UniformValue>>()));
+		}
+		else if (m_Type == DataTypes::Null)
+		{
+			assert(m_DataPointer == nullptr);
+			return(nullptr);
+		}
+		else
+		{
+			throw std::domain_error("Corrupted UniformValue data");
+		}
+	}
+	UniformValue::UniformValue(UniformValue const& ValueToCopy)
+	{
+		m_Type = ValueToCopy.m_Type;
+		m_DataPointer = ValueToCopy.p_CloneData();
+	}
+	UniformValue::UniformValue(UniformValue&& ValueToSteal) noexcept
+	{
+		swap(*this, ValueToSteal);
+	}
+	UniformValue& UniformValue::operator=(UniformValue ValueToSteal)
+	{
+		swap(*this,ValueToSteal);
 		return(*this);
 	}
-	void UniformBundle::SetUniforms(ShaderProgram* ProgramToModify)
+
+	UniformValue::UniformValue(float InitialFloatValue)
 	{
-		for (auto& Value : m_UniformMap)
-		{
-			Value.second->SetValue(Value.first, ProgramToModify);
-		}
+		p_GenericInitialize<float>();
+		p_GetData<float>() = InitialFloatValue;
+		m_Type = DataTypes::Float;
 	}
-	void UniformBundle::SetUniform_Float(std::string const& UniformName, double FloatValue)
+	UniformValue::UniformValue(int InitialIntValue)
 	{
-		//throwa exception om inte finns?
-		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		p_GenericInitialize<int>();
+		p_GetData<int>() = InitialIntValue;
+		m_Type = DataTypes::Int;
+	}
+	UniformValue::UniformValue(MBMath::MBVector3<float> InitialVectorValue)
+	{
+		p_GenericInitialize<MBMath::MBVector3<float>>();
+		p_GetData<MBMath::MBVector3<float>>() = std::move(InitialVectorValue);
+		m_Type = DataTypes::Vec3;
+	}
+	UniformValue::UniformValue(MBMath::MBMatrix4<float> InitialMatrixValue)
+	{
+		p_GenericInitialize<MBMath::MBMatrix4<float>>();
+		p_GetData<MBMath::MBMatrix4<float>>() = std::move(InitialMatrixValue);
+		m_Type = DataTypes::Matrix4;
+	}
+	UniformValue::UniformValue(std::vector<UniformValue> InitialArrayValue)
+	{
+		p_GenericInitialize<std::vector<UniformValue>>();
+		p_GetData<std::vector<UniformValue>>() = std::move(InitialArrayValue);
+		m_Type = DataTypes::Array;
+	}
+	UniformValue::UniformValue(std::map<std::string, UniformValue> InitialStructData)
+	{
+		p_GenericInitialize<std::map<std::string, UniformValue>>();
+		p_GetData<std::map<std::string, UniformValue>>() = std::move(InitialStructData);
+		m_Type = DataTypes::Struct;
+	}
+	//UniformValue::UniformValue(DataTypes InitialDataType)
+	//{
+	//	
+	//}
+
+	void UniformValue::UpdateUniforms(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) const
+	{
+		if (m_Type == DataTypes::Float)
 		{
-			m_UniformMap[UniformName]->SetFloat(FloatValue);
+			ProgramToUpdate->SetUniform1f(NamePrefix, p_GetData<float>());
+		}
+		else if (m_Type == DataTypes::Int)
+		{
+			ProgramToUpdate->SetUniform1i(NamePrefix, p_GetData<int>());
+		}
+		else if (m_Type == DataTypes::Vec3)
+		{
+			MBMath::MBVector3<float> const& InternalVectorData = p_GetData<MBMath::MBVector3<float>>();
+			ProgramToUpdate->SetUniformVec3(NamePrefix,InternalVectorData[0], InternalVectorData[1], InternalVectorData[2]);
+		}
+		else if (m_Type == DataTypes::Matrix4)
+		{
+			MBMath::MBMatrix4<float> const& InternalVectorData = p_GetData<MBMath::MBMatrix4<float>>();
+			ProgramToUpdate->SetUniformMat4f(NamePrefix, InternalVectorData.GetContinousData());
+		}
+		else if (m_Type == DataTypes::Array)
+		{
+			std::vector<UniformValue> const& InternalVectorData = p_GetData<std::vector<UniformValue>>();
+			for (size_t i = 0; i < InternalVectorData.size();i++)
+			{
+				UniformValue const& Value = InternalVectorData[i];
+				if (Value.GetType() != DataTypes::Null)
+				{
+					Value.UpdateUniforms(NamePrefix + "[" + std::to_string(i) + "]", ProgramToUpdate);
+				}
+			}
+		}
+		else if (m_Type == DataTypes::Struct)
+		{
+			std::map<std::string,UniformValue> const& InternalStructData = p_GetData<std::map<std::string, UniformValue>>();
+			for (auto const& Value : InternalStructData)
+			{
+				if (Value.second.GetType() != DataTypes::Null)
+				{
+					std::string NewName = NamePrefix;
+					if (NamePrefix != "")
+					{
+						NewName += ".";
+					}
+					NewName += Value.first;
+					Value.second.UpdateUniforms(NewName, ProgramToUpdate);
+				}
+			}
+		}
+		else if (m_Type == DataTypes::Null)
+		{
+			throw std::domain_error("Cant update uniforms for null UniformValue");
 		}
 		else
 		{
-			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Float(FloatValue)));
+			throw std::domain_error("Corrupted UniformValue");
 		}
 	}
-	void UniformBundle::SetUniform_Int(std::string const& UniformName, int IntegerValue)
+	void UniformValue::UpdateUniforms(UniformValue& ValuesToUpdate) const
 	{
-		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		if (m_Type == DataTypes::Float)
 		{
-			m_UniformMap[UniformName]->SetInt(IntegerValue);
+			ValuesToUpdate.SetFloat(p_GetData<float>());
+		}
+		else if (m_Type == DataTypes::Int)
+		{
+			ValuesToUpdate.SetInt(p_GetData<int>());
+		}
+		else if (m_Type == DataTypes::Vec3)
+		{
+			ValuesToUpdate.SetVec3(p_GetData<MBMath::MBVector3<float>>());
+		}
+		else if (m_Type == DataTypes::Matrix4)
+		{
+			ValuesToUpdate.SetMat4(p_GetData<MBMath::MBMatrix4<float>>());
+		}
+		else if (m_Type == DataTypes::Array)
+		{
+			std::vector<UniformValue> const& InternalVectorData = p_GetData<std::vector<UniformValue>>();
+			for (size_t i = 0; i < InternalVectorData.size();i++)
+			{
+				UniformValue const& Value = InternalVectorData[i];
+				if (Value.GetType() != DataTypes::Null)
+				{
+					ValuesToUpdate.SetIndex(i,Value);
+				}
+			}
+		}
+		else if (m_Type == DataTypes::Struct)
+		{
+			std::map<std::string, UniformValue> const& InternalStructData = p_GetData<std::map<std::string, UniformValue>>();
+			for (auto const& Value : InternalStructData)
+			{
+				if (Value.second.GetType() != DataTypes::Null)
+				{
+					ValuesToUpdate.SetValue(Value.first, Value.second);
+				}
+			}
+		}
+		else if (m_Type == DataTypes::Null)
+		{
+			throw std::domain_error("Cant update uniforms for null UniformValue");
 		}
 		else
 		{
-			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Int(IntegerValue)));
+			throw std::domain_error("Corrupted UniformValue");
 		}
 	}
-	void UniformBundle::SetUniform_Vec3(std::string const& UniformName, float x, float y, float z)
+	void UniformValue::SetFloat(float FloatValue)
 	{
-		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		p_GenericSet<float>(DataTypes::Float, FloatValue);
+	}
+	float& UniformValue::GetFloat()
+	{
+		return(p_GenericGet<float>(DataTypes::Float));
+	}
+	void UniformValue::SetInt(int FloatValue)
+	{
+		p_GenericSet<int>(DataTypes::Int, FloatValue);
+	}
+	int& UniformValue::GetInt()
+	{
+		return(p_GenericGet<int>(DataTypes::Int));
+	}
+	MBMath::MBVector3<float>& UniformValue::GetVec3()
+	{
+		return(p_GenericGet<MBMath::MBVector3<float>>(DataTypes::Vec3));
+	}
+	void UniformValue::SetVec3(MBMath::MBStaticVector3<float> const& VectorToSet)
+	{
+		p_GenericSet<MBMath::MBVector3<float>>(DataTypes::Vec3, VectorToSet);
+	}
+	void UniformValue::SetMat4(MBMath::MBMatrix4<float> const& MatrixToSet)
+	{
+		p_GenericSet<MBMath::MBMatrix4<float>>(DataTypes::Matrix4, MatrixToSet);
+	}
+	void UniformValue::SetIndex(size_t IndexToGet,UniformValue NewValue)
+	{
+		if (m_Type != DataTypes::Array)
 		{
-			m_UniformMap[UniformName]->SetVec3(x,y,z);
+			*this = UniformValue(std::vector<UniformValue>());
+		}
+		std::vector<UniformValue>& InternalVector = p_GetData<std::vector<UniformValue>>();
+		//implicit appendar listan tills det att den är lika stor som indexet vi sätter
+		while (InternalVector.size() <= IndexToGet)
+		{
+			InternalVector.push_back(UniformValue());
+		}
+		InternalVector[IndexToGet] = std::move(NewValue);
+	}
+	UniformValue& UniformValue::GetIndex(size_t IndexToGet)
+	{
+		if (m_Type != DataTypes::Array)
+		{
+			throw std::domain_error("Object not of array type");
 		}
 		else
 		{
-			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Vec3(x,y,z)));
+			std::vector<UniformValue>& InternalVector = p_GetData<std::vector<UniformValue>>();
+			//throwar error om ett värde inte finns vid indexet
+			if (InternalVector.size() <= IndexToGet)
+			{
+				throw std::domain_error("Index out of range");
+			}
+			return(InternalVector[IndexToGet]);
 		}
 	}
-	void UniformBundle::SetUniform_Vec3(std::string const& UniformName, MBMath::MBStaticVector3<float> const& VectorToSet)
+	void UniformValue::SetValue(std::string const& ValueName, UniformValue ValueToAdd)
 	{
-		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+		//Implicit convertar den till ett struct objekt
+		if (m_Type != DataTypes::Struct)
 		{
-			m_UniformMap[UniformName]->SetVec3(VectorToSet[0],VectorToSet[1],VectorToSet[2]);
+			*this = UniformValue(std::map<std::string,UniformValue>());
+		}
+		std::map<std::string, UniformValue>& InternalMap = p_GetData<std::map<std::string, UniformValue>>();
+		//throwar error om ett värde inte finns vid indexet
+		InternalMap[ValueName] = std::move(ValueToAdd);
+	}
+	UniformValue& UniformValue::GetValue(std::string const& ValueName)
+	{
+		if (m_Type != DataTypes::Struct)
+		{
+			throw std::domain_error("Object not of struct type");
 		}
 		else
 		{
-			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Vec3(VectorToSet[0],VectorToSet[1],VectorToSet[2])));
+			std::map<std::string,UniformValue>& InternalMap = p_GetData<std::map<std::string, UniformValue>>();
+			//throwar error om ett värde inte finns vid indexet
+			if (InternalMap.find(ValueName) == InternalMap.end())
+			{
+				throw std::domain_error("Value doesn't exist");
+			}
+			return(InternalMap[ValueName]);
 		}
 	}
-	void UniformBundle::SetUniform_Mat4(std::string const& UniformName, MBMath::MBMatrix4<float> const& MatrixToSet)
+	MBMath::MBMatrix4<float>& UniformValue::GetMat4()
 	{
-		if (m_UniformMap.find(UniformName) != m_UniformMap.end())
-		{
-			m_UniformMap[UniformName]->SetMat4(MatrixToSet);
-		}
-		else
-		{
-			m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Mat4(MatrixToSet)));
-		}
+		return(p_GenericGet<MBMath::MBMatrix4<float>>(DataTypes::Matrix4));
 	}
-	void UniformBundle::AddUniformVector(std::string const& VectorName)
-	{
-		//borde den kolla hurvida den redan finns?
-		m_UniformMap[VectorName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Array()));
-	}
-	void UniformBundle::AddAggregateType(std::string const& UniformName)
-	{
-		m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Aggregate()));
-	}
+
+	//END UniformValue
+
+	//BEGIN UniformBundle
+	//std::unique_ptr<UniformValue> GetUniformValue(std::vector<std::unique_ptr<UniformValue>>&& ArrayValues)
+	//{
+	//	return(std::unique_ptr<UniformValue>(new UniformValue_Array(ArrayValues)));
+	//}
+	//std::unique_ptr<UniformValue> GetUniformValue(std::map<std::string, std::unique_ptr<UniformValue>>&& MapValues)
+	//{
+	//	return(std::unique_ptr<UniformValue>(new UniformValue_Aggregate(MapValues)));
+	//}
+	//std::unique_ptr<UniformValue> GetUniformValue(float Value)
+	//{
+	//	return(std::unique_ptr<UniformValue>(new UniformValue_Float(Value)));
+	//}
+	//std::unique_ptr<UniformValue> GetUniformValue(int Value)
+	//{
+	//	return(std::unique_ptr<UniformValue>(new UniformValue_Int(Value)));
+	//}
+	//std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBVector3<float> const& Value)
+	//{
+	//	return(std::unique_ptr<UniformValue>(new UniformValue_Vec3(Value)));
+	//}
+	//std::unique_ptr<UniformValue> GetUniformValue(float x, float y, float z)
+	//{
+	//	return(std::unique_ptr<UniformValue>(new UniformValue_Vec3(x,y,z)));
+	//}
+	//std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBMatrix4<float> const& Value)
+	//{
+	//	return(std::unique_ptr<UniformValue>(new UniformValue_Mat4(Value)));
+	//}
 	
-	UniformValue& UniformBundle::GetUniform(std::string const& UniformName)
-	{
-		return(*m_UniformMap.at(UniformName));
-	}
-	void UniformBundle::AddUniform(std::string const& UniformName, std::unique_ptr<UniformValue> ValueToAdd)
-	{
-		m_UniformMap[UniformName] = std::move(ValueToAdd);
-	}
+	
+	//void swap(UniformBundle& LeftBundle, UniformBundle& RightBundle)
+	//{
+	//	std::swap(LeftBundle, RightBundle);
+	//}
+	//UniformBundle::UniformBundle(UniformBundle&& BundleToSteal) noexcept
+	//{
+	//	std::swap(*this, BundleToSteal);
+	//}
+	//UniformBundle::UniformBundle(UniformBundle const& BundleToCopy)
+	//{
+	//	for (auto const& Value : BundleToCopy.m_UniformMap)
+	//	{
+	//		m_UniformMap[Value.first] = std::move(Value.second->Copy());
+	//	}
+	//}
+	//UniformBundle& UniformBundle::operator=(UniformBundle BundleToSteal)
+	//{
+	//	std::swap(*this, BundleToSteal);
+	//	return(*this);
+	//}
+	//void UniformBundle::SetUniforms(ShaderProgram* ProgramToModify)
+	//{
+	//	for (auto& Value : m_UniformMap)
+	//	{
+	//		Value.second->SetValue(Value.first, ProgramToModify);
+	//	}
+	//}
+	//void UniformBundle::SetUniform_Float(std::string const& UniformName, double FloatValue)
+	//{
+	//	//throwa exception om inte finns?
+	//	if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+	//	{
+	//		m_UniformMap[UniformName]->SetFloat(FloatValue);
+	//	}
+	//	else
+	//	{
+	//		m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Float(FloatValue)));
+	//	}
+	//}
+	//void UniformBundle::SetUniform_Int(std::string const& UniformName, int IntegerValue)
+	//{
+	//	if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+	//	{
+	//		m_UniformMap[UniformName]->SetInt(IntegerValue);
+	//	}
+	//	else
+	//	{
+	//		m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Int(IntegerValue)));
+	//	}
+	//}
+	//void UniformBundle::SetUniform_Vec3(std::string const& UniformName, float x, float y, float z)
+	//{
+	//	if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+	//	{
+	//		m_UniformMap[UniformName]->SetVec3(x,y,z);
+	//	}
+	//	else
+	//	{
+	//		m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Vec3(x,y,z)));
+	//	}
+	//}
+	//void UniformBundle::SetUniform_Vec3(std::string const& UniformName, MBMath::MBStaticVector3<float> const& VectorToSet)
+	//{
+	//	if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+	//	{
+	//		m_UniformMap[UniformName]->SetVec3(VectorToSet[0],VectorToSet[1],VectorToSet[2]);
+	//	}
+	//	else
+	//	{
+	//		m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Vec3(VectorToSet[0],VectorToSet[1],VectorToSet[2])));
+	//	}
+	//}
+	//void UniformBundle::SetUniform_Mat4(std::string const& UniformName, MBMath::MBMatrix4<float> const& MatrixToSet)
+	//{
+	//	if (m_UniformMap.find(UniformName) != m_UniformMap.end())
+	//	{
+	//		m_UniformMap[UniformName]->SetMat4(MatrixToSet);
+	//	}
+	//	else
+	//	{
+	//		m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Mat4(MatrixToSet)));
+	//	}
+	//}
+	//void UniformBundle::AddUniformVector(std::string const& VectorName)
+	//{
+	//	//borde den kolla hurvida den redan finns?
+	//	m_UniformMap[VectorName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Array()));
+	//}
+	//void UniformBundle::AddAggregateType(std::string const& UniformName)
+	//{
+	//	m_UniformMap[UniformName] = std::move(std::unique_ptr<UniformValue>(new UniformValue_Aggregate()));
+	//}
+	//
+	//UniformValue& UniformBundle::GetUniform(std::string const& UniformName)
+	//{
+	//	return(*m_UniformMap.at(UniformName));
+	//}
+	//void UniformBundle::AddUniform(std::string const& UniformName, std::unique_ptr<UniformValue> ValueToAdd)
+	//{
+	//	m_UniformMap[UniformName] = std::move(ValueToAdd);
+	//}
 
 
 	//END UniformBundle
@@ -1924,6 +2246,12 @@ if (NewString.length != 0)
 	}
 	void Camera::Update(ShaderProgram* ShaderToUpdate)
 	{
+		Update(m_Uniforms);
+		ShaderToUpdate->Bind();
+		m_Uniforms.UpdateUniforms("", ShaderToUpdate);
+	}
+	void Camera::Update(UniformValue& ValuesToUpdate)
+	{
 		MBMath::MBMatrix4<float> TranslationMatrix = MBMath::MBMatrix4<float>();
 		TranslationMatrix(0, 3) = -WorldSpaceCoordinates[0];
 		TranslationMatrix(1, 3) = -WorldSpaceCoordinates[1];
@@ -1940,23 +2268,18 @@ if (NewString.length != 0)
 		BaseChangeMatrix(2, 2) = Facing[2];
 		MBMath::MBMatrix4<float> ViewMatrix = BaseChangeMatrix * TranslationMatrix;
 
-		MBMath::MBStaticVector<float, 4> TestPostion;
-		TestPostion[0] = -0.5;
-		TestPostion[1] = 0.5;
-		TestPostion[2] = 0;
-		TestPostion[3] = 1;
-		MBMath::MBStaticMatrix4<float> DEBUG_TotalTransformation = (ProjectionMatrix * ViewMatrix * ModelMatrix);
-		MBMath::MBStaticVector<float, 4> DEBUG_Result = DEBUG_TotalTransformation *TestPostion;
-		//std::cout << DEBUG_TotalTransformation << std::endl;
-		//std::cout << DEBUG_Result << std::endl;
+		//ShaderToUpdate->Bind();
+		//ShaderToUpdate->SetUniformMat4f("Model", ModelMatrix.GetContinousData());
+		//ShaderToUpdate->SetUniformMat4f("View", ViewMatrix.GetContinousData());
+		//ShaderToUpdate->SetUniformMat4f("Projection", ProjectionMatrix.GetContinousData());
+		//ShaderToUpdate->SetUniformMat4f("NormalMatrix", NormalMatrix.GetContinousData());
+		//ShaderToUpdate->SetUniformVec3("ViewPos", WorldSpaceCoordinates[0], WorldSpaceCoordinates[1], WorldSpaceCoordinates[2]);
 
-		//std::shared_ptr<ShaderProgram> CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
-		ShaderToUpdate->Bind();
-		ShaderToUpdate->SetUniformMat4f("Model", ModelMatrix.GetContinousData());
-		ShaderToUpdate->SetUniformMat4f("View", ViewMatrix.GetContinousData());
-		ShaderToUpdate->SetUniformMat4f("Projection", ProjectionMatrix.GetContinousData());
-		ShaderToUpdate->SetUniformMat4f("NormalMatrix", NormalMatrix.GetContinousData());
-		ShaderToUpdate->SetUniformVec3("ViewPos", WorldSpaceCoordinates[0], WorldSpaceCoordinates[1], WorldSpaceCoordinates[2]);
+		ValuesToUpdate.SetValue("Model",ModelMatrix);
+		ValuesToUpdate.SetValue("View",ViewMatrix);
+		ValuesToUpdate.SetValue("Projection",ProjectionMatrix);
+		ValuesToUpdate.SetValue("NormalMatrix",NormalMatrix);
+		ValuesToUpdate.SetValue("ViewPos",WorldSpaceCoordinates);
 	}
 	MBMath::MBMatrix4<float> Camera::GetTransformationMatrix()
 	{
@@ -1979,9 +2302,8 @@ if (NewString.length != 0)
 		return(TransformationMatrix);
 	}
 	//Lightningsource
-	LightSource::LightSource(MBGraphicsEngine* AttachedEngine)
+	LightSource::LightSource()
 	{
-		AssociatedGraphicsEngine = AttachedEngine;
 		//m_Bundle.AddUniform("LightSources",)
 	}
 	void LightSource::SetLightning(int Position,ShaderProgram* ProgramToUpdate)
@@ -1993,15 +2315,31 @@ if (NewString.length != 0)
 			float SpecStr;
 			float SpecExp;
 		*/
-		std::string StringPosition = std::to_string(Position);
+		ProgramToUpdate->Bind();
+		SetLightning(Position, m_Uniforms);
+		m_Uniforms.UpdateUniforms("",ProgramToUpdate);
+	}
+	void LightSource::SetLightning(int Position, UniformValue& ValuesToUpdate)
+	{
+		//std::string StringPosition = std::to_string(Position);
 		//std::shared_ptr<ShaderProgram> CurrentShader = AssociatedGraphicsEngine->GetCurrentShader();
-		
-		
-		ProgramToUpdate->SetUniformVec3("LightSources[" + StringPosition + "].WorldPos", WorldPosition[0], WorldPosition[1], WorldPosition[2]);
-		ProgramToUpdate->SetUniformVec3("LightSources[" + StringPosition + "].Color", LightColor[0], LightColor[1], LightColor[2]);
-		ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].AmbStr",AmbienceStrength);
-		ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].SpecStr",SpecularStrength);
-		ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].SpecExp",SpecularExp);
+
+		//ProgramToUpdate->SetUniformVec3("LightSources[" + StringPosition + "].WorldPos", WorldPosition[0], WorldPosition[1], WorldPosition[2]);
+		//ProgramToUpdate->SetUniformVec3("LightSources[" + StringPosition + "].Color", LightColor[0], LightColor[1], LightColor[2]);
+		//ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].AmbStr", AmbienceStrength);
+		//ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].SpecStr", SpecularStrength);
+		//ProgramToUpdate->SetUniform1f("LightSources[" + StringPosition + "].SpecExp", SpecularExp);
+		//ValuesToUpdate.GetValue("LightSources").SetIndex(Position)
+		UniformValue NewUniformValue = UniformValue();
+		NewUniformValue.SetValue("WorldPos", WorldPosition);
+		NewUniformValue.SetValue("Color", LightColor);
+		NewUniformValue.SetValue("AmbStr", AmbienceStrength);
+		NewUniformValue.SetValue("SpecStr", SpecularStrength);
+		NewUniformValue.SetValue("SpecExp", SpecularExp);
+		UniformValue FinalValue = UniformValue();
+		FinalValue.SetValue("LightSources", 1);
+		FinalValue.GetValue("LightSources").SetIndex(Position,NewUniformValue);
+		FinalValue.UpdateUniforms(ValuesToUpdate);
 	}
 	//Texture
 	Texture::Texture(std::string FilePath)
@@ -2337,7 +2675,7 @@ if (NewString.length != 0)
 	}
 	LightSource* MBGraphicsEngine::AddLightSource()
 	{
-		LightSource* NewLightSource = new LightSource(this);
+		LightSource* NewLightSource = new LightSource();
 		LightSources.push_back(NewLightSource);
 		return(NewLightSource);
 	}

@@ -80,6 +80,7 @@ namespace MBGE
 	{
 	private:
 		unsigned int m_ProgramHandle = 0;
+		void p_HandleInvalidPosition(int PositionToCheck, std::string const& UniformName);
 	public:
 		ShaderProgram(ShaderProgram const&) = delete;
 		ShaderProgram& operator=(ShaderProgram const&) = delete;
@@ -325,349 +326,388 @@ namespace MBGE
 	protected:
 		//std::string m_UniformName = "";
 		DataTypes m_Type = DataTypes::Null;
-	public:
-		virtual void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate)
-		{
-			throw std::domain_error("Invalid type");
-		}
-		virtual void SetFloat(float FloatValue)
-		{
-			throw std::domain_error("Not of float type");
-		}
-		virtual float& GetFloat()
-		{
-			throw std::domain_error("Not of float type");
-		}
-		virtual void SetInt(int FloatValue)
-		{
-			throw std::domain_error("Not of int type");
-		}
-		virtual int& GetInt()
-		{
-			throw std::domain_error("Not of int type");
-		}
-		virtual void SetVec3(float x, float y, float z)
-		{
-			throw std::domain_error("Not of vec3 type");
-		}
-		virtual MBMath::MBVector3<float>& GetVec3()
-		{
-			throw std::domain_error("Not of vec3 type");
-		}
-		virtual void SetVec3(MBMath::MBStaticVector3<float> const& VectorToSet)
-		{
-			throw std::domain_error("Not of vec3 type");
-		}
-		virtual void SetMat4(MBMath::MBMatrix4<float> const& MatrixToSet)
-		{
-			throw std::domain_error("Not of matrix type");
-		}
-		virtual void PushValue(std::unique_ptr<UniformValue> ValueToAdd)
-		{
-			throw std::domain_error("Not of array type");
-		}
-		virtual UniformValue& GetIndex(size_t IndexToGet)
-		{
-			throw std::domain_error("Not of array type");
-		}
-		virtual void AddValue(std::string const& ValueName,std::unique_ptr<UniformValue> ValueToAd)
-		{
-			throw std::domain_error("Not of Aggregate type");
-		}
-		virtual UniformValue& GetValue(std::string const& ValueName)
-		{
-			throw std::domain_error("Not of Aggregate type");
-		}
-		virtual MBMath::MBMatrix4<float>& GetMat4()
-		{
-			throw std::domain_error("Not of matrix type");
-		}
-		virtual std::unique_ptr<UniformValue> Copy()
-		{
-			throw std::domain_error("Error");
-		}
-		virtual ~UniformValue()
-		{
+		void* m_DataPointer = nullptr;
 
+		friend void swap(UniformValue& LeftValue, UniformValue& RightValue) noexcept;
+		void p_FreeData();
+		void* p_CloneData() const;
+
+		template<typename T> 
+		T& p_GetData()
+		{
+			return(*(T*)m_DataPointer);
+		}
+		template<typename T>
+		T const& p_GetData() const
+		{
+			return(*(const T*)m_DataPointer);
+		}
+		template<typename T>
+		void p_GenericInitialize()
+		{
+			//releasar inte
+			m_DataPointer = new T();
+		}
+
+		template<typename T>
+		void p_GenericSet(DataTypes TargetDataType, T const& ValueToSet)
+		{
+			if (m_Type == TargetDataType)
+			{
+				p_GetData<T>() = ValueToSet;
+			}
+			else
+			{
+				*this = UniformValue(ValueToSet);
+			}
+		}
+		template<typename T>
+		T& p_GenericGet(DataTypes TargetDataType)
+		{
+			if (m_Type != TargetDataType)
+			{
+				throw std::domain_error("trying to get data different from stored");
+			}
+			else
+			{
+				return(p_GetData<T>());
+			}
+		}
+		template<typename T>
+		T const& p_GenericGet(DataTypes TargetDataType) const
+		{
+			if (m_Type != TargetDataType)
+			{
+				throw std::domain_error("trying to get data different from stored");
+			}
+			else
+			{
+				return(p_GetData<T>());
+			}
+		}
+	public:
+		UniformValue(UniformValue const& ValueToCopy);
+		UniformValue(UniformValue&& ValueToSteal) noexcept;
+		UniformValue& operator=(UniformValue ValueToSteal);
+
+		UniformValue() {};
+		UniformValue(float InitialFloatValue);
+		UniformValue(int InitialIntValue);
+		UniformValue(MBMath::MBVector3<float> InitialVectorValue);
+		UniformValue(MBMath::MBMatrix4<float>  InitialMatrixValue);
+		UniformValue(std::vector<UniformValue>  InitialArrayValue);
+		UniformValue(std::map<std::string, UniformValue> InitialStructData);
+		//UniformValue(DataTypes InitialDataType);
+
+		void UpdateUniforms(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) const;
+		void UpdateUniforms(UniformValue& ValuesToUpdate) const;
+
+		DataTypes GetType() const { return(m_Type); };
+		
+		void SetFloat(float FloatValue);
+		float& GetFloat();
+		
+		void SetInt(int FloatValue);
+		int& GetInt();
+
+		void SetVec3(MBMath::MBStaticVector3<float> const& VectorToSet);
+		MBMath::MBVector3<float>& GetVec3();
+
+		void SetMat4(MBMath::MBMatrix4<float> const& MatrixToSet);
+		MBMath::MBMatrix4<float>& GetMat4();
+
+		//OBS implicit omvandlar till en array
+		void SetIndex(size_t IndexToSet, UniformValue NewValue);
+		UniformValue& GetIndex(size_t IndexToGet);
+
+		//OBS implicit omvandlar typen till en Aggregate
+		void SetValue(std::string const& ValueName,UniformValue ValueToAdd);
+		UniformValue& GetValue(std::string const& ValueName);
+		
+		~UniformValue()
+		{
+			p_FreeData();
 		}
 		//void 
 	};
-	class UniformValue_Float : public UniformValue
-	{
-	private:
-	public:
-		float Value = 0;
-		UniformValue_Float(float NewValue)
-		{
-			Value = NewValue;
-			m_Type = DataTypes::Float;
-		}
-		virtual std::unique_ptr<UniformValue> Copy()
-		{
-			return(std::unique_ptr<UniformValue>(new UniformValue_Float(Value)));
-		}
-		void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
-		{
-			ProgramToUpdate->SetUniform1f(NamePrefix, Value);
-		}
-		virtual void SetFloat(float FloatValue)
-		{
-			Value = FloatValue;
-		}
-		virtual float& GetFloat()
-		{
-			return(Value);
-		}
-		virtual ~UniformValue_Float()
-		{
-
-		}
-	};
-	class UniformValue_Int : public UniformValue
-	{
-	private:
-	public:
-		int Value = 0;
-
-		virtual std::unique_ptr<UniformValue> Copy()
-		{
-			return(std::unique_ptr<UniformValue>(new UniformValue_Int(Value)));
-		}
-
-		void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
-		{
-			ProgramToUpdate->SetUniform1i(NamePrefix, Value);
-		}
-		UniformValue_Int(int NewValue)
-		{
-			Value = NewValue;
-			m_Type = DataTypes::Int;
-		}
-
-		virtual void SetInt(int IntValue) override
-		{
-			Value = IntValue;
-		}
-		virtual int& GetInt() override
-		{
-			return(Value);
-		}
-		virtual ~UniformValue_Int()
-		{
-
-		}
-	};
-	class UniformValue_Vec3 : public UniformValue
-	{
-	private:
-	public:
-		MBMath::MBVector3<float> Data;
-
-		virtual std::unique_ptr<UniformValue> Copy()
-		{
-			return(std::unique_ptr<UniformValue>(new UniformValue_Vec3(Data)));
-		}
-
-		void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
-		{
-			ProgramToUpdate->SetUniformVec3(NamePrefix,Data[0],Data[1],Data[2]);
-		}
-		UniformValue_Vec3(MBMath::MBVector3<float> const& Value)
-		{
-			Data = Value;
-			m_Type = DataTypes::Vec3;
-		}
-		UniformValue_Vec3(float x, float y, float z)
-		{
-			Data[0] = x;
-			Data[1] = y;
-			Data[2] = z;
-			m_Type = DataTypes::Vec3;
-		}
-		virtual void SetVec3(float x, float y, float z) override
-		{
-			//Value = IntValue;
-			Data[0] = x;
-			Data[1] = y;
-			Data[2] = z;
-		}
-		virtual void SetVec3(MBMath::MBVector3<float> const& NewData) override
-		{
-			Data = NewData;
-		}
-		virtual MBMath::MBVector3<float>& GetVec3() override
-		{
-			return(Data);
-		}
-		virtual ~UniformValue_Vec3()
-		{
-
-		}
-	};
-	class UniformValue_Mat4 : public UniformValue
-	{
-	private:
-	public:
-		MBMath::MBMatrix4<float> Value;
-		
-		virtual std::unique_ptr<UniformValue> Copy() override
-		{
-			return(std::unique_ptr<UniformValue>(new UniformValue_Mat4(Value)));
-		}
-
-		void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
-		{
-			ProgramToUpdate->SetUniformMat4f(NamePrefix, Value.GetContinousData());
-		}
-		UniformValue_Mat4(MBMath::MBMatrix4<float> const& ValuesToSet)
-		{
-			Value = ValuesToSet;
-			m_Type = DataTypes::Matrix4;
-		}
-
-		virtual void SetMat4(MBMath::MBMatrix4<float> const& IntValue) override
-		{
-			Value = IntValue;
-		}
-		virtual MBMath::MBMatrix4<float>& GetMat4() override
-		{
-			return(Value);
-		}
-		virtual ~UniformValue_Mat4()
-		{
-
-		}
-	};
-	class UniformValue_Array : public UniformValue
-	{
-	private:
-		//std::string m_TypeName = "";
-		std::vector<std::unique_ptr<UniformValue>> m_Values = {};
-	public:
-		virtual std::unique_ptr<UniformValue> Copy() override
-		{
-			return(std::unique_ptr<UniformValue>(new UniformValue_Array(m_Values)));
-		}
-		void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
-		{
-			for (size_t i = 0; i < m_Values.size(); i++)
-			{
-				m_Values[i]->SetValue(NamePrefix + "[" + std::to_string(i) + "]", ProgramToUpdate);
-			}
-		}
-		UniformValue_Array()
-		{
-			m_Type = DataTypes::Array;
-		}
-		UniformValue_Array(std::vector<std::unique_ptr<UniformValue>> const& NewValues)
-		{
-			for (size_t i = 0; i < NewValues.size(); i++)
-			{
-				m_Values.push_back(NewValues[i]->Copy());
-			}
-			m_Type = DataTypes::Array;
-		}
-		UniformValue_Array(std::vector<std::unique_ptr<UniformValue>>&& NewValues)
-		{
-			m_Values = std::move(NewValues);
-			m_Type = DataTypes::Array;
-		}
-		//void AddValue();
-		void PushValue(std::unique_ptr<UniformValue> ValueToAdd)
-		{
-			m_Values.push_back(std::move(ValueToAdd));
-		}
-		UniformValue& GetIndex(size_t Index) override
-		{
-			return(*m_Values.at(Index));
-		}
-
-
-		~UniformValue_Array()
-		{
-
-		}
-
-	};
-	class UniformValue_Aggregate : public UniformValue
-	{
-	private:
-		std::map<std::string,std::unique_ptr<UniformValue>> m_Values = {};
-	public:
-		//void AddValue(std::string const& Name);
-		virtual std::unique_ptr<UniformValue> Copy() override
-		{
-			return(std::unique_ptr<UniformValue>(new UniformValue_Aggregate(m_Values)));
-		}
-
-		void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
-		{
-			for (auto& Values : m_Values)
-			{
-				Values.second->SetValue(NamePrefix + "." + Values.first, ProgramToUpdate);
-			}
-		}
-		UniformValue_Aggregate()
-		{
-			m_Type = DataTypes::Struct;
-		}
-		UniformValue_Aggregate(std::map<std::string, std::unique_ptr<UniformValue>> const& NewValues)
-		{
-			for (auto const& Value : NewValues)
-			{
-				m_Values[Value.first] = Value.second->Copy();
-			}
-			m_Type = DataTypes::Struct;
-		}
-		UniformValue_Aggregate(std::map<std::string, std::unique_ptr<UniformValue>>&& NewValues)
-		{
-			m_Values = std::move(NewValues);
-			m_Type = DataTypes::Struct;
-		}
-		UniformValue& GetValue(std::string const& VariableName) override
-		{
-			return(*m_Values.at(VariableName));
-		}
-		void AddValue(std::string const& VariableName,std::unique_ptr<UniformValue> ValueToAdd) override
-		{
-			m_Values[VariableName] = std::move(ValueToAdd);
-		}
-		~UniformValue_Aggregate()
-		{
-
-		}
-	};
-	std::unique_ptr<UniformValue> GetUniformValue(std::vector<std::unique_ptr<UniformValue>>&& ArrayValues);
-	std::unique_ptr<UniformValue> GetUniformValue(std::map<std::string,std::unique_ptr<UniformValue>>&& MapValues);
-	std::unique_ptr<UniformValue> GetUniformValue(float Value);
-	std::unique_ptr<UniformValue> GetUniformValue(int Value);
-	std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBVector3<float> const& Value);
-	std::unique_ptr<UniformValue> GetUniformValue(float x,float y,float z);
-	std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBMatrix4<float> const& Value);
-	class UniformBundle
-	{
-	private:
-		std::map<std::string, std::unique_ptr<UniformValue>> m_UniformMap = {};
-	public:
-		friend void swap(UniformBundle& LeftBundle, UniformBundle& RightBundle);
-		UniformBundle(UniformBundle&& BundleToSteal) noexcept;
-		UniformBundle() {};
-		UniformBundle(UniformBundle const& BundleToCopy);
-		UniformBundle& operator=(UniformBundle BundleToSteal);
-		void SetUniforms(ShaderProgram* ProgramModify);
-
-		void SetUniform_Float(std::string const& UniformName, double FloatValue);
-		void SetUniform_Int(std::string const& UniformName, int IntegerValue);
-		void SetUniform_Vec3(std::string const& UniformName, float x, float y, float z);
-		void SetUniform_Vec3(std::string const& UniformName, MBMath::MBStaticVector3<float> const& VectorToSet);
-		void SetUniform_Mat4(std::string const& UniformName, MBMath::MBMatrix4<float> const& MatrixToSet);
-
-		UniformValue& GetUniform(std::string const& UniformName);
-		void AddUniform(std::string const& UniformName, std::unique_ptr<UniformValue> ValueToAdd);
-
-		void AddUniformVector(std::string const& VectorName);
-		void AddAggregateType(std::string const& UniformName);
-	};
+	//class UniformValue_Float : public UniformValue
+	//{
+	//private:
+	//public:
+	//	float Value = 0;
+	//	UniformValue_Float(float NewValue)
+	//	{
+	//		Value = NewValue;
+	//		m_Type = DataTypes::Float;
+	//	}
+	//	virtual std::unique_ptr<UniformValue> Copy()
+	//	{
+	//		return(std::unique_ptr<UniformValue>(new UniformValue_Float(Value)));
+	//	}
+	//	void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
+	//	{
+	//		ProgramToUpdate->SetUniform1f(NamePrefix, Value);
+	//	}
+	//	virtual void SetFloat(float FloatValue)
+	//	{
+	//		Value = FloatValue;
+	//	}
+	//	virtual float& GetFloat()
+	//	{
+	//		return(Value);
+	//	}
+	//	virtual ~UniformValue_Float()
+	//	{
+	//
+	//	}
+	//};
+	//class UniformValue_Int : public UniformValue
+	//{
+	//private:
+	//public:
+	//	int Value = 0;
+	//
+	//	virtual std::unique_ptr<UniformValue> Copy()
+	//	{
+	//		return(std::unique_ptr<UniformValue>(new UniformValue_Int(Value)));
+	//	}
+	//
+	//	void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
+	//	{
+	//		ProgramToUpdate->SetUniform1i(NamePrefix, Value);
+	//	}
+	//	UniformValue_Int(int NewValue)
+	//	{
+	//		Value = NewValue;
+	//		m_Type = DataTypes::Int;
+	//	}
+	//
+	//	virtual void SetInt(int IntValue) override
+	//	{
+	//		Value = IntValue;
+	//	}
+	//	virtual int& GetInt() override
+	//	{
+	//		return(Value);
+	//	}
+	//	virtual ~UniformValue_Int()
+	//	{
+	//
+	//	}
+	//};
+	//class UniformValue_Vec3 : public UniformValue
+	//{
+	//private:
+	//public:
+	//	MBMath::MBVector3<float> Data;
+	//
+	//	virtual std::unique_ptr<UniformValue> Copy()
+	//	{
+	//		return(std::unique_ptr<UniformValue>(new UniformValue_Vec3(Data)));
+	//	}
+	//
+	//	void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
+	//	{
+	//		ProgramToUpdate->SetUniformVec3(NamePrefix,Data[0],Data[1],Data[2]);
+	//	}
+	//	UniformValue_Vec3(MBMath::MBVector3<float> const& Value)
+	//	{
+	//		Data = Value;
+	//		m_Type = DataTypes::Vec3;
+	//	}
+	//	UniformValue_Vec3(float x, float y, float z)
+	//	{
+	//		Data[0] = x;
+	//		Data[1] = y;
+	//		Data[2] = z;
+	//		m_Type = DataTypes::Vec3;
+	//	}
+	//	virtual void SetVec3(float x, float y, float z) override
+	//	{
+	//		//Value = IntValue;
+	//		Data[0] = x;
+	//		Data[1] = y;
+	//		Data[2] = z;
+	//	}
+	//	virtual void SetVec3(MBMath::MBVector3<float> const& NewData) override
+	//	{
+	//		Data = NewData;
+	//	}
+	//	virtual MBMath::MBVector3<float>& GetVec3() override
+	//	{
+	//		return(Data);
+	//	}
+	//	virtual ~UniformValue_Vec3()
+	//	{
+	//
+	//	}
+	//};
+	//class UniformValue_Mat4 : public UniformValue
+	//{
+	//private:
+	//public:
+	//	MBMath::MBMatrix4<float> Value;
+	//	
+	//	virtual std::unique_ptr<UniformValue> Copy() override
+	//	{
+	//		return(std::unique_ptr<UniformValue>(new UniformValue_Mat4(Value)));
+	//	}
+	//
+	//	void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
+	//	{
+	//		ProgramToUpdate->SetUniformMat4f(NamePrefix, Value.GetContinousData());
+	//	}
+	//	UniformValue_Mat4(MBMath::MBMatrix4<float> const& ValuesToSet)
+	//	{
+	//		Value = ValuesToSet;
+	//		m_Type = DataTypes::Matrix4;
+	//	}
+	//
+	//	virtual void SetMat4(MBMath::MBMatrix4<float> const& IntValue) override
+	//	{
+	//		Value = IntValue;
+	//	}
+	//	virtual MBMath::MBMatrix4<float>& GetMat4() override
+	//	{
+	//		return(Value);
+	//	}
+	//	virtual ~UniformValue_Mat4()
+	//	{
+	//
+	//	}
+	//};
+	//class UniformValue_Array : public UniformValue
+	//{
+	//private:
+	//	//std::string m_TypeName = "";
+	//	std::vector<std::unique_ptr<UniformValue>> m_Values = {};
+	//public:
+	//	virtual std::unique_ptr<UniformValue> Copy() override
+	//	{
+	//		return(std::unique_ptr<UniformValue>(new UniformValue_Array(m_Values)));
+	//	}
+	//	void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
+	//	{
+	//		for (size_t i = 0; i < m_Values.size(); i++)
+	//		{
+	//			m_Values[i]->SetValue(NamePrefix + "[" + std::to_string(i) + "]", ProgramToUpdate);
+	//		}
+	//	}
+	//	UniformValue_Array()
+	//	{
+	//		m_Type = DataTypes::Array;
+	//	}
+	//	UniformValue_Array(std::vector<std::unique_ptr<UniformValue>> const& NewValues)
+	//	{
+	//		for (size_t i = 0; i < NewValues.size(); i++)
+	//		{
+	//			m_Values.push_back(NewValues[i]->Copy());
+	//		}
+	//		m_Type = DataTypes::Array;
+	//	}
+	//	UniformValue_Array(std::vector<std::unique_ptr<UniformValue>>&& NewValues)
+	//	{
+	//		m_Values = std::move(NewValues);
+	//		m_Type = DataTypes::Array;
+	//	}
+	//	//void AddValue();
+	//	void PushValue(std::unique_ptr<UniformValue> ValueToAdd)
+	//	{
+	//		m_Values.push_back(std::move(ValueToAdd));
+	//	}
+	//	UniformValue& GetIndex(size_t Index) override
+	//	{
+	//		return(*m_Values.at(Index));
+	//	}
+	//
+	//
+	//	~UniformValue_Array()
+	//	{
+	//
+	//	}
+	//
+	//};
+	//class UniformValue_Aggregate : public UniformValue
+	//{
+	//private:
+	//	std::map<std::string,std::unique_ptr<UniformValue>> m_Values = {};
+	//public:
+	//	//void AddValue(std::string const& Name);
+	//	virtual std::unique_ptr<UniformValue> Copy() override
+	//	{
+	//		return(std::unique_ptr<UniformValue>(new UniformValue_Aggregate(m_Values)));
+	//	}
+	//
+	//	void SetValue(std::string const& NamePrefix, ShaderProgram* ProgramToUpdate) override
+	//	{
+	//		for (auto& Values : m_Values)
+	//		{
+	//			Values.second->SetValue(NamePrefix + "." + Values.first, ProgramToUpdate);
+	//		}
+	//	}
+	//	UniformValue_Aggregate()
+	//	{
+	//		m_Type = DataTypes::Struct;
+	//	}
+	//	UniformValue_Aggregate(std::map<std::string, std::unique_ptr<UniformValue>> const& NewValues)
+	//	{
+	//		for (auto const& Value : NewValues)
+	//		{
+	//			m_Values[Value.first] = Value.second->Copy();
+	//		}
+	//		m_Type = DataTypes::Struct;
+	//	}
+	//	UniformValue_Aggregate(std::map<std::string, std::unique_ptr<UniformValue>>&& NewValues)
+	//	{
+	//		m_Values = std::move(NewValues);
+	//		m_Type = DataTypes::Struct;
+	//	}
+	//	UniformValue& GetValue(std::string const& VariableName) override
+	//	{
+	//		return(*m_Values.at(VariableName));
+	//	}
+	//	void AddValue(std::string const& VariableName,std::unique_ptr<UniformValue> ValueToAdd) override
+	//	{
+	//		m_Values[VariableName] = std::move(ValueToAdd);
+	//	}
+	//	~UniformValue_Aggregate()
+	//	{
+	//
+	//	}
+	//};
+	//std::unique_ptr<UniformValue> GetUniformValue(std::vector<std::unique_ptr<UniformValue>>&& ArrayValues);
+	//std::unique_ptr<UniformValue> GetUniformValue(std::map<std::string,std::unique_ptr<UniformValue>>&& MapValues);
+	//std::unique_ptr<UniformValue> GetUniformValue(float Value);
+	//std::unique_ptr<UniformValue> GetUniformValue(int Value);
+	//std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBVector3<float> const& Value);
+	//std::unique_ptr<UniformValue> GetUniformValue(float x,float y,float z);
+	//std::unique_ptr<UniformValue> GetUniformValue(MBMath::MBMatrix4<float> const& Value);
+	//class UniformBundle
+	//{
+	//private:
+	//	std::map<std::string, std::unique_ptr<UniformValue>> m_UniformMap = {};
+	//public:
+	//	friend void swap(UniformBundle& LeftBundle, UniformBundle& RightBundle);
+	//
+	//
+	//	UniformBundle(UniformBundle&& BundleToSteal) noexcept;
+	//	UniformBundle() {};
+	//	UniformBundle(UniformBundle const& BundleToCopy);
+	//	UniformBundle& operator=(UniformBundle BundleToSteal);
+	//	void SetUniforms(ShaderProgram* ProgramModify);
+	//
+	//	void SetUniform_Float(std::string const& UniformName, double FloatValue);
+	//	void SetUniform_Int(std::string const& UniformName, int IntegerValue);
+	//	void SetUniform_Vec3(std::string const& UniformName, float x, float y, float z);
+	//	void SetUniform_Vec3(std::string const& UniformName, MBMath::MBStaticVector3<float> const& VectorToSet);
+	//	void SetUniform_Mat4(std::string const& UniformName, MBMath::MBMatrix4<float> const& MatrixToSet);
+	//
+	//	UniformValue& GetUniform(std::string const& UniformName);
+	//	void AddUniform(std::string const& UniformName, std::unique_ptr<UniformValue> ValueToAdd);
+	//
+	//	void AddUniformVector(std::string const& VectorName);
+	//	void AddAggregateType(std::string const& UniformName);
+	//};
 	class Texture;
 	class Material
 	{
@@ -864,6 +904,7 @@ namespace MBGE
 		float FieldOfViewY = 45;
 		float FieldOfViewX = 45;
 		MBGraphicsEngine* AssociatedGraphicsEngine = nullptr;
+		UniformValue m_Uniforms;
 	public:
 		MBMath::MBVector3<float> WorldSpaceCoordinates = MBMath::MBVector3<float>(0, 0, -4);
 
@@ -872,6 +913,7 @@ namespace MBGE
 		void SetRotation(MBMath::MBVector3<float> const& NewRotation);
 		void SetModelMatrix(MBMath::MBMatrix4<float> const& ModelMatrix);
 		void Update(ShaderProgram* ShaderToUpdate);
+		void Update(UniformValue& ValuesToUpdate);
 		MBMath::MBVector3<float> GetDirection();
 		MBMath::MBVector3<float> GetRightAxis();
 		MBMath::MBVector3<float> GetUpAxis();
@@ -887,7 +929,7 @@ namespace MBGE
 	private:
 		MBGraphicsEngine* AssociatedGraphicsEngine;
 
-		UniformBundle m_Bundle;
+		UniformValue m_Uniforms;
 	public:
 		MBMath::MBVector3<float> WorldPosition = MBMath::MBVector3<float>(0, 0, 0);
 		MBMath::MBVector3<float> LightColor = MBMath::MBVector3<float>(1, 1, 1);
@@ -895,7 +937,8 @@ namespace MBGE
 		float SpecularExp = 32;
 		float SpecularStrength = 0.3;
 		void SetLightning(int Position,ShaderProgram* ProgramToUpdate);
-		LightSource(MBGraphicsEngine* AttachedEngine);
+		void SetLightning(int Position,UniformValue& ValuesToUpdate);
+		LightSource();
 	};
 	class Texture
 	{

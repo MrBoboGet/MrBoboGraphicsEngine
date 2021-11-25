@@ -23,12 +23,16 @@ int main()
 	exit(0);
 	*/
 	//std::cout << std::filesystem::current_path() << std::endl;
-	std::filesystem::current_path(std::filesystem::current_path().parent_path());
+	
+	
+	//std::filesystem::current_path(std::filesystem::current_path().parent_path());
+	
+	
 	//std::cout << std::filesystem::current_path() << std::endl;
 	MBGE::MBGraphicsEngine GraphicEngine;
 	std::cout << "MBGETest 3" << std::endl;
 	//GraphicEngine.CameraObject.SetFrustum(0.1, 100000, -0.1, 0.1, -0.1, 0.1);
-	GraphicEngine.CameraObject.SetOrtographicProjection(100, 75);
+	GraphicEngine.CameraObject.SetOrtographicProjection(500, 375);
 	GraphicEngine.CameraObject.WorldSpaceCoordinates = MBMath::MBVector3<float>(0,0,-10);
 
 	clock_t Timer = clock();
@@ -39,11 +43,11 @@ int main()
 	
 	GraphicEngine.SetCurrentShader(TigerShader);
 	
-	std::cout << sizeof(MBGE::UniformValue) << std::endl;
-	std::cout << sizeof(MBGE::UniformValue_Float) << std::endl;
-	std::cout << sizeof(MBGE::UniformValue_Int) << std::endl;
-	std::cout << sizeof(MBGE::UniformValue_Vec3) << std::endl;
-	std::cout << sizeof(MBGE::UniformValue_Mat4) << std::endl;
+	//std::cout << sizeof(MBGE::UniformValue) << std::endl;
+	//std::cout << sizeof(MBGE::UniformValue_Float) << std::endl;
+	//std::cout << sizeof(MBGE::UniformValue_Int) << std::endl;
+	//std::cout << sizeof(MBGE::UniformValue_Vec3) << std::endl;
+	//std::cout << sizeof(MBGE::UniformValue_Mat4) << std::endl;
 
 	//GraphicEngine.GetCurrentShader()->Bind();
 	
@@ -62,6 +66,7 @@ int main()
 	std::vector<MBGE::MaterialAttribute> TigerAttributes = { MBGE::MaterialAttribute::DiffuseTexture };
 	MBGE::Model* TigerModel = GraphicEngine.LoadModel("./Resources/Models/Tiger/source/Tiger.fbx", TigerAttributes);
 	MBGE::Model* TigerModel2 = GraphicEngine.LoadModel("./Resources/Models/Tiger/source/Tiger.fbx", TigerAttributes);
+	MBGE::Model* TigerModel3 = GraphicEngine.LoadModel("./Resources/Models/Tiger/source/Tiger.fbx", TigerAttributes);
 	TigerModel->SetShader(TigerShader);
 
 	TigerModel->ModelTransform.SetScaling(1, 1, 1);
@@ -72,8 +77,16 @@ int main()
 	TigerModel2->ModelTransform.SetScaling(1, 1, 1);
 	TigerModel2->ModelTransform.SetPosition(150, 0, 0);
 	TigerModel2->ModelTransform.SetRotation(0, 0, 0);
+
+	TigerModel3->SetShader(TigerShader);
+	TigerModel3->ModelTransform.SetScaling(1, 1, 1);
+	TigerModel3->ModelTransform.SetPosition(-150, 0, 0);
+	TigerModel3->ModelTransform.SetRotation(0, 0, 0);
 	bool ZWasPressed = false;
 	bool XWasPressed = false;
+
+	GraphicEngine.CameraObject.WorldSpaceCoordinates = MBMath::MBVector3<float>(0, 0, 150);
+	GraphicEngine.CameraObject.SetRotation(0, 180, 0);
 
 	MBGE::SpriteModel TestSprite = MBGE::SpriteModel("./Resources/Textures/Test.png",&GraphicEngine);
 	std::shared_ptr<MBGE::ShaderProgram> SpriteShader = GraphicEngine.LoadShader("SpriteShader", "./Resources/Shaders/VertexTextureTest.vert","./Resources/Shaders/FragmentTextureTest.frag");
@@ -94,8 +107,8 @@ int main()
 		{
 			ZWasPressed = false;
 		}
-		if ((clock() - Timer) / (float)CLOCKS_PER_SEC < 0.0166666 && GraphicEngine.FrameByFrame == false)
-		//if (false && GraphicEngine.FrameByFrame == false)
+		//if ((clock() - Timer) / (float)CLOCKS_PER_SEC < 0.0166666 && GraphicEngine.FrameByFrame == false)
+		if (false && GraphicEngine.FrameByFrame == false)
 		{
 			continue;
 		}
@@ -176,7 +189,8 @@ int main()
 		//*/
 		GraphicEngine.UpdateUniforms(TigerShader.get());
 		TigerModel->Draw();
-		//TigerModel2->Draw();
+		TigerModel2->Draw();
+		TigerModel3->Draw();
 		TestSprite.Draw();
 		//TestModel->Draw();
 		//ChesireModel->Draw();

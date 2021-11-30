@@ -12,3 +12,5 @@ Excludes:
 /LinuxPortable.zip
 /MBGraphicsEngine.zip
 /CMakeSettings.json
+/MBGETest.exe
+/TigerGraphicsEngine.zip

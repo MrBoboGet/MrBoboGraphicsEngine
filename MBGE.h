@@ -44,6 +44,7 @@ namespace MBGE
 		VertexShader& operator=(VertexShader&&) noexcept;
 
 		VertexShader(std::string const& ShaderSourcePath);
+		VertexShader(const void* Data,size_t DataSize);
 		~VertexShader();
 	};
 	class GeometryShader
@@ -59,6 +60,7 @@ namespace MBGE
 		GeometryShader& operator=(GeometryShader&&) noexcept;
 
 		GeometryShader(std::string const& ShaderSourcePath);
+		GeometryShader(const void* Data, size_t DataSize);
 		~GeometryShader();
 	};
 	class FragmentShader
@@ -74,6 +76,7 @@ namespace MBGE
 		FragmentShader& operator=(FragmentShader&&) noexcept;
 
 		FragmentShader(std::string const& ShaderSourcePath);
+		FragmentShader(const void* Data, size_t DataSize);
 		~FragmentShader();
 	};
 	class ShaderProgram
@@ -903,7 +906,7 @@ namespace MBGE
 		MBMath::MBMatrix4<float> NormalMatrix = MBMath::MBMatrix4<float>();
 		float FieldOfViewY = 45;
 		float FieldOfViewX = 45;
-		MBGraphicsEngine* AssociatedGraphicsEngine = nullptr;
+		//MBGraphicsEngine* AssociatedGraphicsEngine = nullptr;
 		UniformValue m_Uniforms;
 	public:
 		MBMath::MBVector3<float> WorldSpaceCoordinates = MBMath::MBVector3<float>(0, 0, -4);
@@ -944,16 +947,26 @@ namespace MBGE
 	{
 	private:
 		unsigned int TextureHandle = 0;
+		int m_PixelWidth = 0;
+		int m_PixelHeight = 0;
 	public:
 		Texture(std::string FilePath);
 		void Bind(int TextureLocation);
 		void UnBind(int TextureLocation);
+		int GetWidth()
+		{
+			return(m_PixelWidth);
+		}
+		int GetHeight()
+		{
+			return(m_PixelHeight);
+		}
 		~Texture();
 	};
 	class MBGraphicsEngine
 	{
 	private:
-		GLFWwindow* Window;
+		GLFWwindow* Window = nullptr;
 		std::string ResourceFolder = "";
 		std::vector<Model*> LoadedModels = {};
 		//std::string CurrentShaderID = "";
@@ -963,20 +976,25 @@ namespace MBGE
 		std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> LoadedShaders = {};
 		std::unordered_map<std::string, std::shared_ptr<Texture>> LoadedTextures = {};
 		std::vector<LightSource*> LightSources = {};
-		VertexArrayObject* PBS_VertexArray;
-		VertexLayout* PBS_Layout;
-		VertexBuffer* PBS_VertexBuffer;
-		ElementBufferObject* PBS_ElementBuffer;
-		FrameBuffer* PostProcessingFrameBuffer;
+		
+		
+		std::vector<std::shared_ptr<ShaderProgram>> m_PBS_Shaders = {};
+		std::unique_ptr<VertexArrayObject> PBS_VertexArray;
+		std::unique_ptr<VertexLayout> PBS_Layout;
+		std::unique_ptr<VertexBuffer> PBS_VertexBuffer;
+		std::unique_ptr<ElementBufferObject> PBS_ElementBuffer;
+		std::unique_ptr<FrameBuffer> PostProcessingFrameBuffer;
 		void DrawPostProcessing();
 		clock_t DeltaTimeTimer = clock();
 		double DeltaTime = 0;
 		//std::thread PollEventsThread;
+		bool _DefaultRemoved = false;
 	public:
+		void AddPostProcessingShader(std::shared_ptr<ShaderProgram> NewPostProcessingShader);
 		bool FrameByFrame = false;
 		double GetDeltaTimeInSec() { return(DeltaTime); };
-		std::string PostProcessingShaderID = "Default_PPS";
-		Camera CameraObject = Camera(this);
+		//std::string PostProcessingShaderID = "Default_PPS";
+		Camera CameraObject = Camera();
 		void UpdateUniforms(ShaderProgram* ProgramToUpdate);
 		std::shared_ptr<ShaderProgram> GetCurrentShader();
 		LightSource* AddLightSource();
@@ -991,8 +1009,8 @@ namespace MBGE
 		std::shared_ptr<ShaderProgram> GetShader(std::string ShaderID);
 		std::shared_ptr<Texture> GetTexture(std::string const& TextureFilePath);
 		void PollEvents();
-		std::string GetResourceFolder();
 		void Update();
-		void CreateWindow();
+		void WindowCreate(size_t Width,size_t Height,std::string const& MonitorName,bool FullScreen);
+		void GetWindowSize(int* Width, int* Height);
 	};
 };

@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <filesystem>
 #include <stack>
-
+#include <MBUtility/MBFiles.h>
 
 GLenum glCheckError_(const char* file, int line)
 {
@@ -37,30 +37,34 @@ GLenum glCheckError_(const char* file, int line)
 #define glCheckError() glCheckError_(__FILE__, __LINE__) 
 namespace MBGE
 {
-	//Vertexshader
-	VertexShader::VertexShader(std::string const& SourcePath)
+	unsigned int h_CreateShader(const void* ShaderData,GLint DataSize,unsigned int ShaderType)
 	{
-		std::ifstream t(SourcePath);
-		t.seekg(0, std::ios::end);
-		size_t size = std::filesystem::file_size(SourcePath);
-		std::string buffer(size, ' ');
-		t.seekg(0);
-		t.read(&buffer[0], size);
-		//nu har vi läst in filen
-		const char* ShaderSourcePointer = buffer.c_str();
-		m_ShaderHandle = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(m_ShaderHandle, 1, &ShaderSourcePointer, NULL);
-		glCompileShader(m_ShaderHandle);
+		unsigned int ReturnValue = 0;
+		const char* ShaderSourcePointer =(const char*) ShaderData;
+		ReturnValue = glCreateShader(ShaderType);
+		glShaderSource(ReturnValue, 1, &ShaderSourcePointer, &DataSize);
+		glCompileShader(ReturnValue);
 		//checka om det lyckades
 		int  success;
 		char infoLog[512];
-		glGetShaderiv(m_ShaderHandle, GL_COMPILE_STATUS, &success);
+		glGetShaderiv(ReturnValue, GL_COMPILE_STATUS, &success);
 		if (!success)
 		{
-			glGetShaderInfoLog(m_ShaderHandle, 512, NULL, infoLog);
+			glGetShaderInfoLog(ReturnValue, 512, NULL, infoLog);
 			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
 		}
 		glCheckError();
+		return(ReturnValue);
+	}
+	//Vertexshader
+	VertexShader::VertexShader(std::string const& SourcePath)
+	{
+		std::string ShaderData = MBUtility::ReadWholeFile(SourcePath);
+		m_ShaderHandle = h_CreateShader(ShaderData.data(), ShaderData.size(), GL_VERTEX_SHADER);
+	}
+	VertexShader::VertexShader(const void* Data, size_t DataSize)
+	{
+		m_ShaderHandle = h_CreateShader(Data, DataSize, GL_VERTEX_SHADER);
 	}
 	VertexShader::VertexShader(VertexShader&& ShaderToSteal) noexcept
 	{
@@ -82,27 +86,12 @@ namespace MBGE
 	//geometry shader
 	GeometryShader::GeometryShader(std::string const& SourcePath)
 	{
-		std::ifstream t(SourcePath);
-		t.seekg(0, std::ios::end);
-		size_t size = t.tellg();
-		std::string buffer(size, ' ');
-		t.seekg(0);
-		t.read(&buffer[0], size);
-		//nu har vi läst in filen
-		const char* ShaderSourcePointer = buffer.c_str();
-		m_ShaderHandle = glCreateShader(GL_GEOMETRY_SHADER);
-		glShaderSource(m_ShaderHandle, 1, &ShaderSourcePointer, NULL);
-		glCompileShader(m_ShaderHandle);
-		//checka om det lyckades
-		int  success;
-		char infoLog[512];
-		glGetShaderiv(m_ShaderHandle, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			glGetShaderInfoLog(m_ShaderHandle, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-		glCheckError();
+		std::string ShaderData = MBUtility::ReadWholeFile(SourcePath);
+		m_ShaderHandle = h_CreateShader(ShaderData.data(), ShaderData.size(), GL_GEOMETRY_SHADER);
+	}
+	GeometryShader::GeometryShader(const void* Data, size_t DataSize)
+	{
+		m_ShaderHandle = h_CreateShader(Data, DataSize, GL_GEOMETRY_SHADER);
 	}
 	GeometryShader::GeometryShader(GeometryShader&& ShaderToSteal) noexcept
 	{
@@ -123,27 +112,12 @@ namespace MBGE
 	//fragmentShader
 	FragmentShader::FragmentShader(std::string const& SourcePath)
 	{
-		std::ifstream t(SourcePath);
-		t.seekg(0, std::ios::end);
-		size_t size = t.tellg();
-		std::string buffer(size, ' ');
-		t.seekg(0);
-		t.read(&buffer[0], size);
-		//nu har vi läst in filen
-		const char* ShaderSourcePointer = buffer.c_str();
-		m_ShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(m_ShaderHandle, 1, &ShaderSourcePointer, NULL);
-		glCompileShader(m_ShaderHandle);
-		//checka om det lyckades
-		int  success;
-		char infoLog[512];
-		glGetShaderiv(m_ShaderHandle, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			glGetShaderInfoLog(m_ShaderHandle, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-		glCheckError();
+		std::string ShaderData = MBUtility::ReadWholeFile(SourcePath);
+		m_ShaderHandle = h_CreateShader(ShaderData.data(), ShaderData.size(), GL_FRAGMENT_SHADER);
+	}
+	FragmentShader::FragmentShader(const void* Data, size_t DataSize)
+	{
+		m_ShaderHandle = h_CreateShader(Data, DataSize, GL_FRAGMENT_SHADER);
 	}
 	FragmentShader::FragmentShader(FragmentShader&& ShaderToSteal) noexcept
 	{
@@ -2137,11 +2111,6 @@ if (NewString.length != 0)
 	//Camera
 	Camera::Camera()
 	{
-
-	}
-	Camera::Camera(MBGraphicsEngine* EngineToAttach)
-	{
-		AssociatedGraphicsEngine = EngineToAttach;
 	}
 	MBMath::MBVector3<float> Camera::GetDirection() 
 	{ 
@@ -2347,6 +2316,8 @@ if (NewString.length != 0)
 		stbi_set_flip_vertically_on_load(true);
 		int width, height, nrChannels;
 		unsigned char* data = stbi_load(FilePath.c_str(), &width, &height, &nrChannels, 0);
+		m_PixelWidth = width;
+		m_PixelHeight = height;
 		glGenTextures(1, &TextureHandle);
 		glBindTexture(GL_TEXTURE_2D, TextureHandle);
 		// set the texture wrapping/filtering options (on the currently bound texture object)
@@ -2628,12 +2599,22 @@ if (NewString.length != 0)
 	}
 	MBGraphicsEngine::MBGraphicsEngine()
 	{
-		//test för att se att vi kan starta ett window
 		glfwInit();
+	}
+	void MBGraphicsEngine::WindowCreate(size_t Width, size_t Height, std::string const& MonitorName, bool FullScreen)
+	{
+		//test för att se att vi kan starta ett window
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		Window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+		if (!FullScreen)
+		{
+			Window = glfwCreateWindow(Width, Height, MonitorName.c_str(), NULL, NULL);
+		}
+		else
+		{
+			Window = glfwCreateWindow(Width, Height, MonitorName.c_str(), glfwGetPrimaryMonitor(), NULL);
+		}
 		if (Window == NULL)
 		{
 			std::cout << "Failed to create GLFW window" << std::endl;
@@ -2646,8 +2627,8 @@ if (NewString.length != 0)
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		//nu kan vi göra grejer som kräver en opengl kontext
-		PostProcessingFrameBuffer = new FrameBuffer(800, 600);
-		LoadShader("Default_PPS", "./Resources/Shaders/PostProcessing/PostProcessingVert.vert", "./Resources/Shaders/PostProcessing/PostProcessingFrag.frag");
+		PostProcessingFrameBuffer = std::unique_ptr<FrameBuffer>(new FrameBuffer(Width, Height));
+		//LoadShader("Default_PPS", "./Resources/Shaders/PostProcessing/PostProcessingVert.vert", "./Resources/Shaders/PostProcessing/PostProcessingFrag.frag");
 		float PBS_Vertices[] =
 		{
 			-1,-1, 0,0,
@@ -2661,17 +2642,46 @@ if (NewString.length != 0)
 			0,2,3
 		};
 
-		PBS_VertexArray = new VertexArrayObject();
+		PBS_VertexArray = std::unique_ptr<VertexArrayObject>(new VertexArrayObject());
 		PBS_VertexArray->Bind();
-		PBS_VertexBuffer = new VertexBuffer(VBTypes::StaticDraw, 16 * sizeof(unsigned int), PBS_Vertices);
-		PBS_ElementBuffer = new ElementBufferObject(6, PBS_Indexes);
+		PBS_VertexBuffer = std::unique_ptr<VertexBuffer>(new VertexBuffer(VBTypes::StaticDraw, 16 * sizeof(unsigned int), PBS_Vertices));
+		PBS_ElementBuffer = std::unique_ptr<ElementBufferObject>(new ElementBufferObject(6, PBS_Indexes));
 
-		PBS_Layout = new VertexLayout();
+		PBS_Layout = std::unique_ptr<VertexLayout>(new VertexLayout());
 		PBS_Layout->AddAttribute(sizeof(float), 2, MBGE::DataTypes::Float);
 		PBS_Layout->AddAttribute(sizeof(float), 2, MBGE::DataTypes::Float);
 		PBS_VertexBuffer->Bind();
 		PBS_Layout->Bind();
 		PBS_VertexArray->UnBind();
+
+		//skapar default post processing shader
+		const char* DefaultVertexData =
+#include <Resources/Shaders/PostProcessing/PostProcessingDefault.vert>
+			;
+		const char* DefaultFragmentData =
+#include <Resources/Shaders/PostProcessing/PostProcessingDefault.frag>
+			;
+		VertexShader DefaultVertex(DefaultVertexData, std::strlen(DefaultVertexData));
+		FragmentShader DefaultFragment(DefaultFragmentData, std::strlen(DefaultFragmentData));
+		std::shared_ptr<ShaderProgram> DefaultShader = std::shared_ptr<ShaderProgram>(new ShaderProgram(DefaultVertex, DefaultFragment));
+		DefaultShader->Bind();
+		DefaultShader->SetUniform1i("RenderedImage", 0);
+		m_PBS_Shaders.push_back(DefaultShader);
+	}
+	void MBGraphicsEngine::GetWindowSize(int* Width, int* Height)
+	{
+		glfwGetWindowSize(Window, Width, Height);
+	}
+	void MBGraphicsEngine::AddPostProcessingShader(std::shared_ptr<ShaderProgram> NewPostProcessingShader)
+	{
+		if (!_DefaultRemoved)
+		{
+			m_PBS_Shaders[0] = NewPostProcessingShader;
+		}
+		else
+		{
+			m_PBS_Shaders.push_back(NewPostProcessingShader);
+		}
 	}
 	LightSource* MBGraphicsEngine::AddLightSource()
 	{
@@ -2689,15 +2699,19 @@ if (NewString.length != 0)
 	}
 	void MBGraphicsEngine::DrawPostProcessing()
 	{
-		std::shared_ptr<ShaderProgram> PPS_Shader = GetShader(PostProcessingShaderID);
-		PPS_Shader->Bind();
-		PPS_Shader->SetUniform1i("RenderedImage", 0);
-		PPS_Shader->SetUniform1i("DepthStencilTexture", 1);
+		//std::shared_ptr<ShaderProgram> PPS_Shader = GetShader(PostProcessingShaderID);
+		//PPS_Shader->Bind();
+		//PPS_Shader->SetUniform1i("RenderedImage", 0);
+		//PPS_Shader->SetUniform1i("DepthStencilTexture", 1);
 		PBS_VertexArray->Bind();
 		PBS_VertexBuffer->Bind();
 		PBS_ElementBuffer->Bind();
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		
+		//borde fixa en äkta pipeline greja för Post processing, men nu vill vi bara få saker att fungera
+		for (size_t i = 0; i < m_PBS_Shaders.size(); i++)
+		{
+			m_PBS_Shaders[i]->Bind();
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		}		
 	}
 	void MBGraphicsEngine::PollEvents()
 	{

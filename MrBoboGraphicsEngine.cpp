@@ -25,11 +25,17 @@ int main()
 	//std::cout << std::filesystem::current_path() << std::endl;
 	
 	
-	//std::filesystem::current_path(std::filesystem::current_path().parent_path());
+	std::filesystem::current_path(std::filesystem::current_path().parent_path());
 	
 	
 	//std::cout << std::filesystem::current_path() << std::endl;
 	MBGE::MBGraphicsEngine GraphicEngine;
+	GraphicEngine.WindowCreate(800, 600, "MBGraphicsEngine Test", false);
+	std::shared_ptr<MBGE::ShaderProgram> PPShader= GraphicEngine.LoadShader("Default_PPS", "./Resources/Shaders/PostProcessing/PostProcessingVert.vert", "./Resources/Shaders/PostProcessing/PostProcessingFrag.frag");
+	PPShader->Bind();
+	PPShader->SetUniform1i("RenderedImage", 0);
+	PPShader->SetUniform1i("DepthStencilTexture", 1);
+	GraphicEngine.AddPostProcessingShader(PPShader);
 	std::cout << "MBGETest 3" << std::endl;
 	//GraphicEngine.CameraObject.SetFrustum(0.1, 100000, -0.1, 0.1, -0.1, 0.1);
 	GraphicEngine.CameraObject.SetOrtographicProjection(500, 375);

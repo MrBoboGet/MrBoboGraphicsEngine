@@ -94,7 +94,7 @@ int main()
 	GraphicEngine.CameraObject.WorldSpaceCoordinates = MBMath::MBVector3<float>(0, 0, 150);
 	GraphicEngine.CameraObject.SetRotation(0, 180, 0);
 
-	MBGE::SpriteModel TestSprite = MBGE::SpriteModel("./Resources/Textures/Test.png",&GraphicEngine);
+	MBGE::SpriteModel TestSprite = MBGE::SpriteModel(GraphicEngine.GetTexture("./Resources/Textures/Test.png"));
 	std::shared_ptr<MBGE::ShaderProgram> SpriteShader = GraphicEngine.LoadShader("SpriteShader", "./Resources/Shaders/VertexTextureTest.vert","./Resources/Shaders/FragmentTextureTest.frag");
 	TestSprite.SetShader(SpriteShader);
 
@@ -197,6 +197,7 @@ int main()
 		TigerModel->Draw();
 		TigerModel2->Draw();
 		TigerModel3->Draw();
+		GraphicEngine.CameraObject.Update(TestSprite.GetShader().get());
 		TestSprite.Draw();
 		//TestModel->Draw();
 		//ChesireModel->Draw();

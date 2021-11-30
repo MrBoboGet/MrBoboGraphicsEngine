@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <map>
 #define MBGE_BASE_TYPE double 
-class GLFWwindow;
 #define MBGE_BONEPERVERTEX 5
 namespace MBGE
 {
@@ -875,11 +874,17 @@ namespace MBGE
 		Mesh m_SpriteMesh;
 		std::shared_ptr<Texture> m_SpriteTexture = nullptr;
 		std::shared_ptr<ShaderProgram> m_SpriteShader = nullptr;
-		MBGraphicsEngine* m_AssociatedEngine = nullptr;
+		//MBGraphicsEngine* m_AssociatedEngine = nullptr;
 	public:
 		Transform ModelTransform;
-		SpriteModel(std::string const& TexturePath, MBGraphicsEngine* AssociatedEngine);
+		SpriteModel(std::shared_ptr<Texture> Texture);
+
 		void SetShader(std::shared_ptr<ShaderProgram> ShaderToUse);
+		void SetTexture(std::shared_ptr<Texture> TextureToUse);
+		std::shared_ptr<ShaderProgram> GetShader()
+		{
+			return(m_SpriteShader);
+		}
 		void Draw();
 	};
 	class FrameBuffer
@@ -924,7 +929,7 @@ namespace MBGE
 		void SetFrustum(float NearPlane, float FarPlane, float XMin, float XMax, float YMin, float YMax);
 		void SetOrtographicProjection(float Width,float Height);
 		Camera();
-		Camera(MBGraphicsEngine* EngineToAttach);
+		//Camera(MBGraphicsEngine* EngineToAttach);
 		MBMath::MBMatrix4<float> GetTransformationMatrix();
 	};
 	class LightSource
@@ -966,7 +971,7 @@ namespace MBGE
 	class MBGraphicsEngine
 	{
 	private:
-		GLFWwindow* Window = nullptr;
+		void* Window = nullptr;
 		std::string ResourceFolder = "";
 		std::vector<Model*> LoadedModels = {};
 		//std::string CurrentShaderID = "";

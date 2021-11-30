@@ -1993,12 +1993,12 @@ if (NewString.length != 0)
 		}
 	}
 	//BEGIN SpriteModel
-	SpriteModel::SpriteModel(std::string const& TexturePath, MBGraphicsEngine* AssociatedEngine)
+	SpriteModel::SpriteModel(std::shared_ptr<Texture> Texture)
 	{
-		m_AssociatedEngine = AssociatedEngine;
-		m_SpriteTexture = AssociatedEngine->GetTexture(TexturePath);
+		//m_AssociatedEngine = AssociatedEngine;
+		m_SpriteTexture = Texture;
 
-		float Width = 20;
+		float Width = 1;
 		float AspectRation = 1;
 		float Height = Width * AspectRation;
 		float VertexData[20];
@@ -2037,14 +2037,19 @@ if (NewString.length != 0)
 	{
 		m_SpriteShader = ShaderToUse;
 	}
+	void SpriteModel::SetTexture(std::shared_ptr<Texture> TextureToUse)
+	{
+		m_SpriteTexture = TextureToUse;
+	}
 	void SpriteModel::Draw()
 	{
 		m_SpriteShader->Bind();
 		//m_SpriteShader->SetUniform1i("OurTexture", 0);
 		m_SpriteTexture->Bind(0);
 		//m_SpriteShader->PrintActiveAttributesAndUniforms();
-		m_AssociatedEngine->CameraObject.SetModelMatrix(ModelTransform.GetModelMatrix());
-		m_AssociatedEngine->CameraObject.Update(m_SpriteShader.get());
+		//m_AssociatedEngine->CameraObject.SetModelMatrix(ModelTransform.GetModelMatrix());
+		//m_AssociatedEngine->CameraObject.Update(m_SpriteShader.get());
+		//m_SpriteShader.get()->SetUniformMat4f("Model", ModelTransform.GetModelMatrix().GetContinousData());
 
 		m_SpriteMesh.Draw();
 	}
@@ -2591,11 +2596,11 @@ if (NewString.length != 0)
 	//MBGraphicsEngine
 	bool MBGraphicsEngine::GetKey(unsigned int KeyCode)
 	{
-		return(glfwGetKey(Window, KeyCode) == GLFW_PRESS);
+		return(glfwGetKey((GLFWwindow*)Window, KeyCode) == GLFW_PRESS);
 	}
 	bool MBGraphicsEngine::GetKeyUp(unsigned int KeyCode)
 	{
-		return(glfwGetKey(Window, KeyCode) == GLFW_RELEASE);
+		return(glfwGetKey((GLFWwindow*)Window, KeyCode) == GLFW_RELEASE);
 	}
 	MBGraphicsEngine::MBGraphicsEngine()
 	{
@@ -2620,7 +2625,7 @@ if (NewString.length != 0)
 			std::cout << "Failed to create GLFW window" << std::endl;
 			glfwTerminate();
 		}
-		glfwMakeContextCurrent(Window);
+		glfwMakeContextCurrent((GLFWwindow*)Window);
 		gl3wInit();
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -2670,7 +2675,7 @@ if (NewString.length != 0)
 	}
 	void MBGraphicsEngine::GetWindowSize(int* Width, int* Height)
 	{
-		glfwGetWindowSize(Window, Width, Height);
+		glfwGetWindowSize((GLFWwindow*)Window, Width, Height);
 	}
 	void MBGraphicsEngine::AddPostProcessingShader(std::shared_ptr<ShaderProgram> NewPostProcessingShader)
 	{
@@ -2726,7 +2731,7 @@ if (NewString.length != 0)
 		glDisable(GL_DEPTH_TEST);
 		DrawPostProcessing();
 
-		glfwSwapBuffers(Window);
+		glfwSwapBuffers((GLFWwindow*)Window);
 		//Kanske inte behövs
 		//CameraObject.Update();
 		//kanske inte ens behövs clearas

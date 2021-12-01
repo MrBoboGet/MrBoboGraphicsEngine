@@ -1724,21 +1724,23 @@ if (NewString.length != 0)
 	//BEGIN Transform
 	MBMath::MBMatrix4<float> Transform::GetModelMatrix() const
 	{
+		MBMath::MBMatrix4<float> ReturnValue;
 		MBMath::MBMatrix4<float> ScalingMatrix;
 		MBMath::MBMatrix4<float> RotationMatrix;
-		MBMath::MBMatrix4<float> TranslationMatrix;
 		
 		ScalingMatrix(0,0) = m_Scalings[0];
 		ScalingMatrix(1,1) = m_Scalings[1];
 		ScalingMatrix(2,2) = m_Scalings[2];
 
-		TranslationMatrix(0, 3) = m_WorldPosition[0];
-		TranslationMatrix(1, 3) = m_WorldPosition[1];
-		TranslationMatrix(2, 3) = m_WorldPosition[2];
-
 		RotationMatrix = MBMath::GetRotationMatrix<float>(m_Rotation[0], m_Rotation[1], m_Rotation[2]);
 
-		return(ScalingMatrix * RotationMatrix * TranslationMatrix);
+		ReturnValue = ScalingMatrix * RotationMatrix;
+		ReturnValue(0, 3) = m_WorldPosition[0];
+		ReturnValue(1, 3) = m_WorldPosition[1];
+		ReturnValue(2, 3) = m_WorldPosition[2];
+
+		return(ReturnValue);
+		
 	}
 	void Transform::SetRotation(float XRotation, float YRotation, float ZRotation)
 	{
@@ -2146,10 +2148,10 @@ if (NewString.length != 0)
 	}
 	void Camera::SetOrtographicProjection(float Width, float Height)
 	{
-		const float XMax = Width;
-		const float XMin = -Width;
-		const float YMax = Height;
-		const float YMin = -Height;
+		const float XMax = Width/2;
+		const float XMin = -Width/2;
+		const float YMax = Height/2;
+		const float YMin = -Height/2;
 		const float FarPlane = 10000;
 		const float NearPlane = 0.01;
 		MBMath::MBMatrix4<float> NewProjectionMatrix = MBMath::MBMatrix4<float>();

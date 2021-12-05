@@ -905,6 +905,8 @@ namespace MBGE
 		MBMath::MBVector3<float> Facing = MBMath::MBVector3<float>(0, 0, -1);
 		MBMath::MBVector3<float> RightAxis = MBMath::MBVector3<float>(1, 0, 0);
 		MBMath::MBVector3<float> UpAxis = MBMath::MBVector3<float>(0, 1, 0);
+
+
 		MBMath::MBMatrix4<float> ProjectionMatrix = MBMath::MBMatrix4<float>();
 		MBMath::MBVector3<float> Rotation = MBMath::MBVector3<float>(0, 0, 0);
 		MBMath::MBMatrix4<float> ModelMatrix = MBMath::MBMatrix4<float>();
@@ -920,6 +922,11 @@ namespace MBGE
 		void SetRotation(float XaxisRotation, float YaxisRotation, float ZAxisRotation);
 		void SetRotation(MBMath::MBVector3<float> const& NewRotation);
 		void SetModelMatrix(MBMath::MBMatrix4<float> const& ModelMatrix);
+
+		MBMath::MBMatrix4<float> GetViewMatrix();
+		MBMath::MBMatrix4<float> GetModelMatrix();
+		MBMath::MBMatrix4<float> GetProjectionMatrix();
+
 		void Update(ShaderProgram* ShaderToUpdate);
 		void Update(UniformValue& ValuesToUpdate);
 		MBMath::MBVector3<float> GetDirection();

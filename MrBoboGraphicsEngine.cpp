@@ -77,17 +77,17 @@ int main()
 
 	TigerModel->ModelTransform.SetScaling(1, 1, 1);
 	TigerModel->ModelTransform.SetPosition(0, 0, 0);
-	TigerModel->ModelTransform.SetRotation(0, 0, 0);
+	TigerModel->ModelTransform.SetRotation(90, 0, 0);
 
 	TigerModel2->SetShader(TigerShader);
 	TigerModel2->ModelTransform.SetScaling(1, 1, 1);
 	TigerModel2->ModelTransform.SetPosition(150, 0, 0);
-	TigerModel2->ModelTransform.SetRotation(0, 0, 0);
+	TigerModel2->ModelTransform.SetRotation(180, 0, 0);
 
 	TigerModel3->SetShader(TigerShader);
 	TigerModel3->ModelTransform.SetScaling(1, 1, 1);
 	TigerModel3->ModelTransform.SetPosition(-150, 0, 0);
-	TigerModel3->ModelTransform.SetRotation(0, 0, 0);
+	TigerModel3->ModelTransform.SetRotation(270, 0, 0);
 	bool ZWasPressed = false;
 	bool XWasPressed = false;
 

@@ -1732,9 +1732,10 @@ if (NewString.length != 0)
 		ScalingMatrix(1,1) = m_Scalings[1];
 		ScalingMatrix(2,2) = m_Scalings[2];
 
-		RotationMatrix = MBMath::GetRotationMatrix<float>(m_Rotation[0], m_Rotation[1], m_Rotation[2]);
+		//RotationMatrix = MBMath::GetRotationMatrix<float>(m_Rotation[0], m_Rotation[1], m_Rotation[2]);
+		RotationMatrix = MBMath::GetRotationMatrix<float>(-m_Rotation[1], m_Rotation[2], m_Rotation[0]);
 
-		ReturnValue = ScalingMatrix * RotationMatrix;
+		ReturnValue =  RotationMatrix*ScalingMatrix;
 		ReturnValue(0, 3) = m_WorldPosition[0];
 		ReturnValue(1, 3) = m_WorldPosition[1];
 		ReturnValue(2, 3) = m_WorldPosition[2];
@@ -2228,6 +2229,23 @@ if (NewString.length != 0)
 	}
 	void Camera::Update(UniformValue& ValuesToUpdate)
 	{
+		MBMath::MBMatrix4<float> ViewMatrix = GetViewMatrix();
+
+		//ShaderToUpdate->Bind();
+		//ShaderToUpdate->SetUniformMat4f("Model", ModelMatrix.GetContinousData());
+		//ShaderToUpdate->SetUniformMat4f("View", ViewMatrix.GetContinousData());
+		//ShaderToUpdate->SetUniformMat4f("Projection", ProjectionMatrix.GetContinousData());
+		//ShaderToUpdate->SetUniformMat4f("NormalMatrix", NormalMatrix.GetContinousData());
+		//ShaderToUpdate->SetUniformVec3("ViewPos", WorldSpaceCoordinates[0], WorldSpaceCoordinates[1], WorldSpaceCoordinates[2]);
+
+		ValuesToUpdate.SetValue("Model",ModelMatrix);
+		ValuesToUpdate.SetValue("View",ViewMatrix);
+		ValuesToUpdate.SetValue("Projection",ProjectionMatrix);
+		ValuesToUpdate.SetValue("NormalMatrix",NormalMatrix);
+		ValuesToUpdate.SetValue("ViewPos",WorldSpaceCoordinates);
+	}
+	MBMath::MBMatrix4<float> Camera::GetViewMatrix()
+	{
 		MBMath::MBMatrix4<float> TranslationMatrix = MBMath::MBMatrix4<float>();
 		TranslationMatrix(0, 3) = -WorldSpaceCoordinates[0];
 		TranslationMatrix(1, 3) = -WorldSpaceCoordinates[1];
@@ -2243,38 +2261,21 @@ if (NewString.length != 0)
 		BaseChangeMatrix(2, 1) = Facing[1];
 		BaseChangeMatrix(2, 2) = Facing[2];
 		MBMath::MBMatrix4<float> ViewMatrix = BaseChangeMatrix * TranslationMatrix;
-
-		//ShaderToUpdate->Bind();
-		//ShaderToUpdate->SetUniformMat4f("Model", ModelMatrix.GetContinousData());
-		//ShaderToUpdate->SetUniformMat4f("View", ViewMatrix.GetContinousData());
-		//ShaderToUpdate->SetUniformMat4f("Projection", ProjectionMatrix.GetContinousData());
-		//ShaderToUpdate->SetUniformMat4f("NormalMatrix", NormalMatrix.GetContinousData());
-		//ShaderToUpdate->SetUniformVec3("ViewPos", WorldSpaceCoordinates[0], WorldSpaceCoordinates[1], WorldSpaceCoordinates[2]);
-
-		ValuesToUpdate.SetValue("Model",ModelMatrix);
-		ValuesToUpdate.SetValue("View",ViewMatrix);
-		ValuesToUpdate.SetValue("Projection",ProjectionMatrix);
-		ValuesToUpdate.SetValue("NormalMatrix",NormalMatrix);
-		ValuesToUpdate.SetValue("ViewPos",WorldSpaceCoordinates);
+		return(ViewMatrix);
+	}
+	MBMath::MBMatrix4<float> Camera::GetModelMatrix()
+	{
+		return(ModelMatrix);
+	}
+	MBMath::MBMatrix4<float> Camera::GetProjectionMatrix()
+	{
+		return(ProjectionMatrix);
 	}
 	MBMath::MBMatrix4<float> Camera::GetTransformationMatrix()
 	{
 		//först tar vi fram projektionsmatrisen för när man ska komma till vår position i worldspace
-		MBMath::MBMatrix4<float> TranslationMatrix = MBMath::MBMatrix4<float>();
-		TranslationMatrix(0, 3) = -WorldSpaceCoordinates[0];
-		TranslationMatrix(1, 3) = -WorldSpaceCoordinates[1];
-		TranslationMatrix(2, 3) = -WorldSpaceCoordinates[2];
-		MBMath::MBMatrix4<float> BaseChangeMatrix = MBMath::MBMatrix4<float>();
-		BaseChangeMatrix(0, 0) = RightAxis[0];
-		BaseChangeMatrix(0, 1) = RightAxis[1];
-		BaseChangeMatrix(0, 2) = RightAxis[2];
-		BaseChangeMatrix(1, 0) = UpAxis[0];
-		BaseChangeMatrix(1, 1) = UpAxis[1];
-		BaseChangeMatrix(1, 2) = UpAxis[2];
-		BaseChangeMatrix(2, 0) = Facing[0];
-		BaseChangeMatrix(2, 1) = Facing[1];
-		BaseChangeMatrix(2, 2) = Facing[2];
-		MBMath::MBMatrix4<float> TransformationMatrix = ProjectionMatrix * BaseChangeMatrix * TranslationMatrix*ModelMatrix;
+		MBMath::MBMatrix4<float> ViewMatrix = GetViewMatrix();
+		MBMath::MBMatrix4<float> TransformationMatrix = ProjectionMatrix * ViewMatrix *ModelMatrix;
 		return(TransformationMatrix);
 	}
 	//Lightningsource

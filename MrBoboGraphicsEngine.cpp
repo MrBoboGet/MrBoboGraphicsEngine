@@ -88,8 +88,6 @@ int main()
 	TigerModel3->ModelTransform.SetScaling(1, 1, 1);
 	TigerModel3->ModelTransform.SetPosition(-150, 0, 0);
 	TigerModel3->ModelTransform.SetRotation(270, 0, 0);
-	bool ZWasPressed = false;
-	bool XWasPressed = false;
 
 	GraphicEngine.CameraObject.WorldSpaceCoordinates = MBMath::MBVector3<float>(0, 0, 150);
 	GraphicEngine.CameraObject.SetRotation(0, 180, 0);
@@ -97,21 +95,15 @@ int main()
 	MBGE::SpriteModel TestSprite = MBGE::SpriteModel(GraphicEngine.GetTexture("./Resources/Textures/Test.png"));
 	std::shared_ptr<MBGE::ShaderProgram> SpriteShader = GraphicEngine.LoadShader("SpriteShader", "./Resources/Shaders/VertexTextureTest.vert","./Resources/Shaders/FragmentTextureTest.frag");
 	TestSprite.SetShader(SpriteShader);
+	TestSprite.ModelTransform.SetScaling(100, 100, 1);
 
 	while (true)
 	{
 		GraphicEngine.PollEvents();
-		if (GraphicEngine.GetKey('Z'))
+		if (GraphicEngine.GetKeyPressed(MBGE::KeyCode::Z))
 		{
-			if (ZWasPressed == false)
-			{
-				GraphicEngine.FrameByFrame = !GraphicEngine.FrameByFrame;
-			}
-			ZWasPressed = true;
-		}
-		else
-		{
-			ZWasPressed = false;
+			GraphicEngine.FrameByFrame = !GraphicEngine.FrameByFrame;
+			std::cout << "Z pressed" << std::endl;
 		}
 		//if ((clock() - Timer) / (float)CLOCKS_PER_SEC < 0.0166666 && GraphicEngine.FrameByFrame == false)
 		if (false && GraphicEngine.FrameByFrame == false)
@@ -120,24 +112,10 @@ int main()
 		}
 		if (GraphicEngine.FrameByFrame)
 		{
-			if (GraphicEngine.GetKey('X'))
-			{
-				if (XWasPressed == false)
-				{
-					XWasPressed = true;
-				}
-				else
-				{
-					XWasPressed = true;
-					continue;
-				}
-				XWasPressed = true;
-			}
-			else
-			{
-				XWasPressed = false;
-				continue;
-			}
+			//if (GraphicEngine.GetKeyPressed(MBGE::KeyCode::X))
+			//{
+			//	GraphicEngine.
+			//}
 		}
 		PrintDeltaIncrement += 1;
 		if (PrintDeltaIncrement% 60 == 0)
@@ -149,45 +127,45 @@ int main()
 		//GraphicEngine.GetCurrentShader()->PrintActiveAttributesAndUniforms();
 		//gör lite grundläggande åka runt grejer
 		///*
-		if (GraphicEngine.GetKey('W'))
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::W))
 		{
 			GraphicEngine.CameraObject.WorldSpaceCoordinates = GraphicEngine.CameraObject.WorldSpaceCoordinates + GraphicEngine.CameraObject.GetDirection() * 2;
 		}
-		if (GraphicEngine.GetKey('A'))
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::A))
 		{
 			GraphicEngine.CameraObject.WorldSpaceCoordinates = GraphicEngine.CameraObject.WorldSpaceCoordinates + GraphicEngine.CameraObject.GetRightAxis() * -2;
 		}
-		if (GraphicEngine.GetKey('S'))
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::S))
 		{
 			GraphicEngine.CameraObject.WorldSpaceCoordinates = GraphicEngine.CameraObject.WorldSpaceCoordinates + GraphicEngine.CameraObject.GetDirection() * -2;
 		}
-		if (GraphicEngine.GetKey('D'))
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::D))
 		{
 			GraphicEngine.CameraObject.WorldSpaceCoordinates = GraphicEngine.CameraObject.WorldSpaceCoordinates + GraphicEngine.CameraObject.GetRightAxis() * 2;
 		}
 		//åker upp/ner
-		if (GraphicEngine.GetKey(' '))
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::Space))
 		{
 			GraphicEngine.CameraObject.WorldSpaceCoordinates = GraphicEngine.CameraObject.WorldSpaceCoordinates + GraphicEngine.CameraObject.GetUpAxis() * 2;
 		}
-		if (GraphicEngine.GetKey(340))
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::LeftShift))
 		{
 			GraphicEngine.CameraObject.WorldSpaceCoordinates = GraphicEngine.CameraObject.WorldSpaceCoordinates + GraphicEngine.CameraObject.GetUpAxis() * -2;
 		}
 		//piltangenterna
-		if (GraphicEngine.GetKey(262)) //right
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::Right)) //right
 		{
 			GraphicEngine.CameraObject.SetRotation(GraphicEngine.CameraObject.GetRotation() + MBMath::MBVector3<float>(0, 2, 0));
 		}
-		if (GraphicEngine.GetKey(263)) //left
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::Left)) //left
 		{
 			GraphicEngine.CameraObject.SetRotation(GraphicEngine.CameraObject.GetRotation() + MBMath::MBVector3<float>(0, -2, 0));
 		}
-		if (GraphicEngine.GetKey(265)) //up
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::Up)) //up
 		{
 			GraphicEngine.CameraObject.SetRotation(GraphicEngine.CameraObject.GetRotation() + MBMath::MBVector3<float>(2, 0, 0));
 		}
-		if (GraphicEngine.GetKey(264)) //down
+		if (GraphicEngine.GetKeyDown(MBGE::KeyCode::Down)) //down
 		{
 			GraphicEngine.CameraObject.SetRotation(GraphicEngine.CameraObject.GetRotation() + MBMath::MBVector3<float>(-2, 0, 0));
 		}
@@ -198,8 +176,11 @@ int main()
 		TigerModel2->Draw();
 		TigerModel3->Draw();
 		GraphicEngine.CameraObject.Update(TestSprite.GetShader().get());
+		TestSprite.GetShader()->Bind();
+		TestSprite.GetShader()->SetUniformMat4f("Model",TestSprite.ModelTransform.GetModelMatrix().GetContinousData());
 		TestSprite.Draw();
 		//TestModel->Draw();
+		
 		//ChesireModel->Draw();
 		//GraphicEngine.SetCurrentShader("Debug");
 		//TestModel->Draw();

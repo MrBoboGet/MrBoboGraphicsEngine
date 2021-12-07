@@ -6,8 +6,12 @@
 #include <thread>
 #include <cstdint>
 #include <map>
+#include <mutex>
+#include <cinttypes>
 #define MBGE_BASE_TYPE double 
 #define MBGE_BONEPERVERTEX 5
+class GLFWwindow;
+
 namespace MBGE
 {
 	//predekleration av klasser som pointers
@@ -26,6 +30,7 @@ namespace MBGE
 		Matrix4,
 		Array,
 		Vec3,
+		Vec4,
 		Struct,
 		Null,
 	};
@@ -396,6 +401,7 @@ namespace MBGE
 		UniformValue(float InitialFloatValue);
 		UniformValue(int InitialIntValue);
 		UniformValue(MBMath::MBVector3<float> InitialVectorValue);
+		UniformValue(MBMath::MBStaticVector<float,4> InitialVectorValue);
 		UniformValue(MBMath::MBMatrix4<float>  InitialMatrixValue);
 		UniformValue(std::vector<UniformValue>  InitialArrayValue);
 		UniformValue(std::map<std::string, UniformValue> InitialStructData);
@@ -415,6 +421,9 @@ namespace MBGE
 		void SetVec3(MBMath::MBStaticVector3<float> const& VectorToSet);
 		MBMath::MBVector3<float>& GetVec3();
 
+		void SetVec4(MBMath::MBStaticVector<float, 4> const& VectorToSet);
+		MBMath::MBStaticVector<float, 4>& GetVec4();
+
 		void SetMat4(MBMath::MBMatrix4<float> const& MatrixToSet);
 		MBMath::MBMatrix4<float>& GetMat4();
 
@@ -425,6 +434,8 @@ namespace MBGE
 		//OBS implicit omvandlar typen till en Aggregate
 		void SetValue(std::string const& ValueName,UniformValue ValueToAdd);
 		UniformValue& GetValue(std::string const& ValueName);
+		bool HasValue(std::string const& ValueName);
+		//bool HasValue(const char* ValueName);
 		
 		~UniformValue()
 		{
@@ -955,14 +966,21 @@ namespace MBGE
 		void SetLightning(int Position,UniformValue& ValuesToUpdate);
 		LightSource();
 	};
+	enum class TextureOptions
+	{
+		NoFilter = 1,
+		LinearFilter = 2,
+	};
 	class Texture
 	{
 	private:
 		unsigned int TextureHandle = 0;
 		int m_PixelWidth = 0;
 		int m_PixelHeight = 0;
+		void p_LoadWithOptions(std::string const& FilePath,uint64_t Options);
 	public:
 		Texture(std::string FilePath);
+		Texture(std::string const& FilePath,uint64_t Options);
 		void Bind(int TextureLocation);
 		void UnBind(int TextureLocation);
 		int GetWidth()
@@ -974,6 +992,18 @@ namespace MBGE
 			return(m_PixelHeight);
 		}
 		~Texture();
+	};
+	enum class KeyCode
+	{
+		A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+		LeftShift, Space, Left, Right, Up, Down, Esc, Enter,_END
+	};
+	enum class KeyInputType
+	{
+		Down,
+		Pressed,
+		Released,
+		Null,
 	};
 	class MBGraphicsEngine
 	{
@@ -1001,7 +1031,21 @@ namespace MBGE
 		double DeltaTime = 0;
 		//std::thread PollEventsThread;
 		bool _DefaultRemoved = false;
+
+		//Agnostic user input grejer
+		std::mutex m_InputMutex;
+		KeyInputType m_KeyboardInputs[uint32_t(KeyCode::_END)];
+
+		void p_ResetInput();
+
+
+		//Underliggande implementation specifika funktioner
+		static void GFLW_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	public:
+		bool GetKeyDown(KeyCode KeyToCheck);
+		bool GetKeyPressed(KeyCode KeyToCheck);
+		bool GetKeyReleased(KeyCode KeyToCheck);
+
 		void AddPostProcessingShader(std::shared_ptr<ShaderProgram> NewPostProcessingShader);
 		bool FrameByFrame = false;
 		double GetDeltaTimeInSec() { return(DeltaTime); };
@@ -1013,8 +1057,8 @@ namespace MBGE
 		//void SetCurrentShader(std::string ShaderID);
 		void SetCurrentShader(std::shared_ptr<ShaderProgram> ShaderToUse);
 		MBGraphicsEngine();
-		bool GetKeyUp(unsigned int KeyCode);
-		bool GetKey(unsigned int KeyCode);
+		//bool GetKeyUp(unsigned int KeyCode);
+		//bool GetKey(unsigned int KeyCode);
 		Model* LoadModel(std::string ModelPath,std::vector<MaterialAttribute> MaterialAttributes);
 		std::shared_ptr<ShaderProgram> LoadShader(std::string ShaderID,std::string VertexShaderPath,std::string FragmentShaderPath);
 		std::shared_ptr<ShaderProgram> LoadShader(std::string ShaderID,std::string VertexShaderPath,std::string GeometryShaderPath,std::string FragmentShaderPath);

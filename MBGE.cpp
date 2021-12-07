@@ -1023,6 +1023,10 @@ if (NewString.length != 0)
 		{
 			delete& p_GetData<MBMath::MBVector3<float>>();
 		}
+		else if (m_Type == DataTypes::Vec4)
+		{
+			delete& p_GetData<MBMath::MBStaticVector<float,4>>();
+		}
 		else if (m_Type == DataTypes::Array)
 		{
 			delete& p_GetData<std::vector<UniformValue>>();
@@ -1057,6 +1061,10 @@ if (NewString.length != 0)
 		else if (m_Type == DataTypes::Vec3)
 		{
 			return(new MBMath::MBVector3<float>(p_GetData<MBMath::MBVector3<float>>()));
+		}
+		else if (m_Type == DataTypes::Vec4)
+		{
+			return(new MBMath::MBStaticVector<float,4>(p_GetData<MBMath::MBStaticVector<float,4>>()));
 		}
 		else if (m_Type == DataTypes::Array)
 		{
@@ -1109,6 +1117,12 @@ if (NewString.length != 0)
 		p_GetData<MBMath::MBVector3<float>>() = std::move(InitialVectorValue);
 		m_Type = DataTypes::Vec3;
 	}
+	UniformValue::UniformValue(MBMath::MBStaticVector<float, 4> InitialVectorValue)
+	{
+		p_GenericInitialize<MBMath::MBStaticVector<float, 4>>();
+		p_GetData<MBMath::MBStaticVector<float, 4>>() = std::move(InitialVectorValue);
+		m_Type = DataTypes::Vec4;
+	}
 	UniformValue::UniformValue(MBMath::MBMatrix4<float> InitialMatrixValue)
 	{
 		p_GenericInitialize<MBMath::MBMatrix4<float>>();
@@ -1147,6 +1161,11 @@ if (NewString.length != 0)
 			MBMath::MBVector3<float> const& InternalVectorData = p_GetData<MBMath::MBVector3<float>>();
 			ProgramToUpdate->SetUniformVec3(NamePrefix,InternalVectorData[0], InternalVectorData[1], InternalVectorData[2]);
 		}
+		else if (m_Type == DataTypes::Vec4)
+		{
+			auto const& InternalVectorData = p_GetData<MBMath::MBStaticVector<float,4>>();
+			ProgramToUpdate->SetUniformVec4(NamePrefix, InternalVectorData[0], InternalVectorData[1], InternalVectorData[2],InternalVectorData[3]);
+		}
 		else if (m_Type == DataTypes::Matrix4)
 		{
 			MBMath::MBMatrix4<float> const& InternalVectorData = p_GetData<MBMath::MBMatrix4<float>>();
@@ -1183,7 +1202,8 @@ if (NewString.length != 0)
 		}
 		else if (m_Type == DataTypes::Null)
 		{
-			throw std::domain_error("Cant update uniforms for null UniformValue");
+			//throw std::domain_error("Cant update uniforms for null UniformValue");
+			//inget görs, inget händer
 		}
 		else
 		{
@@ -1203,6 +1223,10 @@ if (NewString.length != 0)
 		else if (m_Type == DataTypes::Vec3)
 		{
 			ValuesToUpdate.SetVec3(p_GetData<MBMath::MBVector3<float>>());
+		}
+		else if (m_Type == DataTypes::Vec4)
+		{
+			ValuesToUpdate.SetVec4(p_GetData<MBMath::MBStaticVector<float,4>>());
 		}
 		else if (m_Type == DataTypes::Matrix4)
 		{
@@ -1263,6 +1287,14 @@ if (NewString.length != 0)
 	void UniformValue::SetVec3(MBMath::MBStaticVector3<float> const& VectorToSet)
 	{
 		p_GenericSet<MBMath::MBVector3<float>>(DataTypes::Vec3, VectorToSet);
+	}
+	void UniformValue::SetVec4(MBMath::MBStaticVector<float, 4> const& VectorToSet)
+	{
+		p_GenericSet<MBMath::MBStaticVector<float,4>>(DataTypes::Vec4, VectorToSet);
+	}
+	MBMath::MBStaticVector<float,4>& UniformValue::GetVec4()
+	{
+		return(p_GenericGet<MBMath::MBStaticVector<float,4>>(DataTypes::Vec4));
 	}
 	void UniformValue::SetMat4(MBMath::MBMatrix4<float> const& MatrixToSet)
 	{
@@ -1326,6 +1358,15 @@ if (NewString.length != 0)
 			}
 			return(InternalMap[ValueName]);
 		}
+	}
+	bool UniformValue::HasValue(std::string const& ValueName)
+	{
+		if (m_Type != DataTypes::Struct)
+		{
+			throw std::domain_error("Object not of struct type");
+		}
+		std::map<std::string, UniformValue>& InternalMap = p_GetData<std::map<std::string, UniformValue>>();
+		return(InternalMap.find(ValueName) != InternalMap.end());
 	}
 	MBMath::MBMatrix4<float>& UniformValue::GetMat4()
 	{
@@ -2069,7 +2110,7 @@ if (NewString.length != 0)
 		// generate texture
 		glGenTextures(1, &ColorTextureHandle);
 		glBindTexture(GL_TEXTURE_2D, ColorTextureHandle);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, PixelWidth, PixelHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PixelWidth, PixelHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -2319,9 +2360,18 @@ if (NewString.length != 0)
 		FinalValue.UpdateUniforms(ValuesToUpdate);
 	}
 	//Texture
-	Texture::Texture(std::string FilePath)
+	Texture::Texture(std::string const& FilePath, uint64_t Options)
+	{
+		p_LoadWithOptions(FilePath, Options);
+	}
+	void Texture::p_LoadWithOptions(std::string const& FilePath,uint64_t Options)
 	{
 		stbi_set_flip_vertically_on_load(true);
+		uint64_t FilterType = GL_LINEAR;
+		if (Options & uint64_t(TextureOptions::NoFilter))
+		{
+			FilterType = GL_NEAREST;
+		}
 		int width, height, nrChannels;
 		unsigned char* data = stbi_load(FilePath.c_str(), &width, &height, &nrChannels, 0);
 		m_PixelWidth = width;
@@ -2332,8 +2382,8 @@ if (NewString.length != 0)
 		//TODO ta en titt och se vilka texture optionas jag faktiskt vill ha
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, FilterType);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, FilterType);
 		unsigned int ChannelType = GL_RGBA;
 		if (nrChannels < 4)
 		{
@@ -2355,6 +2405,10 @@ if (NewString.length != 0)
 		}
 		stbi_image_free(data);
 		glCheckError();
+	}
+	Texture::Texture(std::string FilePath)
+	{
+		p_LoadWithOptions(FilePath, (uint64_t)TextureOptions::LinearFilter);
 	}
 	void Texture::Bind(int TextureLocation)
 	{
@@ -2597,17 +2651,108 @@ if (NewString.length != 0)
 		//}
 	}
 	//MBGraphicsEngine
-	bool MBGraphicsEngine::GetKey(unsigned int KeyCode)
-	{
-		return(glfwGetKey((GLFWwindow*)Window, KeyCode) == GLFW_PRESS);
-	}
-	bool MBGraphicsEngine::GetKeyUp(unsigned int KeyCode)
-	{
-		return(glfwGetKey((GLFWwindow*)Window, KeyCode) == GLFW_RELEASE);
-	}
+	//bool MBGraphicsEngine::GetKey(unsigned int KeyCode)
+	//{
+	//	return(glfwGetKey((GLFWwindow*)Window, KeyCode) == GLFW_PRESS);
+	//}
+	//bool MBGraphicsEngine::GetKeyUp(unsigned int KeyCode)
+	//{
+	//	return(glfwGetKey((GLFWwindow*)Window, KeyCode) == GLFW_RELEASE);
+	//}
 	MBGraphicsEngine::MBGraphicsEngine()
 	{
 		glfwInit();
+	}
+	KeyCode h_GLFWKeyToMBKey(int GLFWKey)
+	{
+		KeyCode ReturnValue = KeyCode::_END;
+		if (GLFWKey >= 65 && GLFWKey <= 90)
+		{
+			ReturnValue = KeyCode(GLFWKey - 65);
+		}
+		//LeftShift, Space, Left, Right, Up, Down, Esc, Enter
+		//TODO fixa detta genom att mappa med en statisk array typ, just nu är jag bara lat
+		if (GLFWKey == GLFW_KEY_LEFT_SHIFT)
+		{
+			ReturnValue = KeyCode::LeftShift;
+		}
+		else if (GLFWKey == GLFW_KEY_SPACE)
+		{
+			ReturnValue = KeyCode::Space;
+		}
+		else if (GLFWKey == GLFW_KEY_LEFT)
+		{
+			ReturnValue = KeyCode::Left;
+		}
+		else if (GLFWKey == GLFW_KEY_RIGHT)
+		{
+			ReturnValue = KeyCode::Right;
+		}
+		else if (GLFWKey == GLFW_KEY_UP)
+		{
+			ReturnValue = KeyCode::Up;
+		}
+		else if (GLFWKey == GLFW_KEY_DOWN)
+		{
+			ReturnValue = KeyCode::Down;
+		}
+		else if (GLFWKey == GLFW_KEY_ESCAPE)
+		{
+			ReturnValue = KeyCode::Esc;
+		}
+		else if (GLFWKey == GLFW_KEY_ENTER)
+		{
+			ReturnValue = KeyCode::Enter;
+		}
+		return(ReturnValue);
+	}
+	void MBGraphicsEngine::p_ResetInput()
+	{
+		std::lock_guard<std::mutex> Lock(m_InputMutex);
+		for (size_t i = 0; i < (size_t)KeyCode::_END; i++)
+		{
+			if (m_KeyboardInputs[i] == KeyInputType::Pressed)
+			{
+				m_KeyboardInputs[i] = KeyInputType::Down;
+			}
+			if (m_KeyboardInputs[i] == KeyInputType::Released)
+			{
+				m_KeyboardInputs[i] = KeyInputType::Null;
+			}
+		}
+	}
+	void MBGraphicsEngine::GFLW_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+	{
+		MBGraphicsEngine* AssociatedEngine = (MBGraphicsEngine*)glfwGetWindowUserPointer(window);
+		std::lock_guard<std::mutex> Lock(AssociatedEngine->m_InputMutex);
+		if (action == GLFW_PRESS)
+		{
+			AssociatedEngine->m_KeyboardInputs[(size_t)h_GLFWKeyToMBKey(key)] = KeyInputType::Pressed;
+		}
+		else if (action == GLFW_RELEASE)
+		{
+			AssociatedEngine->m_KeyboardInputs[(size_t)h_GLFWKeyToMBKey(key)] = KeyInputType::Released;
+		}
+		else if (action == GLFW_REPEAT)
+		{
+			//gör inget mer eller mindre
+		}
+		//std::cout << char(key);
+	}
+	bool MBGraphicsEngine::GetKeyDown(KeyCode KeyToCheck)
+	{
+		std::lock_guard<std::mutex> Lock(m_InputMutex);
+		return(m_KeyboardInputs[(size_t)KeyToCheck] == KeyInputType::Down || m_KeyboardInputs[(size_t)KeyToCheck] == KeyInputType::Pressed);
+	}
+	bool MBGraphicsEngine::GetKeyPressed(KeyCode KeyToCheck)
+	{
+		std::lock_guard<std::mutex> Lock(m_InputMutex);
+		return(m_KeyboardInputs[(size_t)KeyToCheck] == KeyInputType::Pressed);
+	}
+	bool MBGraphicsEngine::GetKeyReleased(KeyCode KeyToCheck)
+	{
+		std::lock_guard<std::mutex> Lock(m_InputMutex);
+		return(m_KeyboardInputs[(size_t)KeyToCheck] == KeyInputType::Released);
 	}
 	void MBGraphicsEngine::WindowCreate(size_t Width, size_t Height, std::string const& MonitorName, bool FullScreen)
 	{
@@ -2628,12 +2773,14 @@ if (NewString.length != 0)
 			std::cout << "Failed to create GLFW window" << std::endl;
 			glfwTerminate();
 		}
+		glfwSetWindowUserPointer((GLFWwindow*)Window, this);
 		glfwMakeContextCurrent((GLFWwindow*)Window);
+		glfwSetKeyCallback((GLFWwindow*)Window, MBGraphicsEngine::GFLW_KeyCallback);
 		gl3wInit();
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
+		glDepthFunc(GL_LEQUAL);
 		//nu kan vi göra grejer som kräver en opengl kontext
 		PostProcessingFrameBuffer = std::unique_ptr<FrameBuffer>(new FrameBuffer(Width, Height));
 		//LoadShader("Default_PPS", "./Resources/Shaders/PostProcessing/PostProcessingVert.vert", "./Resources/Shaders/PostProcessing/PostProcessingFrag.frag");
@@ -2728,10 +2875,17 @@ if (NewString.length != 0)
 	void MBGraphicsEngine::Update()
 	{
 		//nu bindar vi får color buffer som den vi ska rita, och ritar med post processing shadern
+		p_ResetInput();
 		PostProcessingFrameBuffer->BindColorBuffer(0);
 		PostProcessingFrameBuffer->BindDepthBuffer(1);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_DEPTH_TEST);
+		
+		//glClearColor(0, 0, 0, 0);
+		//glEnable(GL_BLEND);
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glEnable(GL_DEPTH_TEST);
+		//glDepthFunc(GL_LESS);
 		DrawPostProcessing();
 
 		glfwSwapBuffers((GLFWwindow*)Window);
@@ -2748,6 +2902,8 @@ if (NewString.length != 0)
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
+		//glEnable(GL_BLEND);
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glCheckError();
 	}
 	std::shared_ptr<ShaderProgram> MBGraphicsEngine::LoadShader(std::string ShaderID, std::string VertexShaderPath, std::string FragmentShaderPath)

@@ -94,6 +94,11 @@ int main()
 
 	MBGE::SpriteModel TestSprite = MBGE::SpriteModel(GraphicEngine.GetTexture("./Resources/Textures/Test.png"));
 	std::shared_ptr<MBGE::ShaderProgram> SpriteShader = GraphicEngine.LoadShader("SpriteShader", "./Resources/Shaders/VertexTextureTest.vert","./Resources/Shaders/FragmentTextureTest.frag");
+	
+	MBGE::SpriteModel TrivialSprite = MBGE::SpriteModel(GraphicEngine.GetTexture("./Resources/Textures/Johan.png"));
+	std::shared_ptr<MBGE::ShaderProgram> TrivialShader = GraphicEngine.GetShader("TrivialTextureShader");
+	TrivialSprite.SetShader(TrivialShader);
+	TrivialShader->SetUniform1i("TextureToRender", 0);
 	TestSprite.SetShader(SpriteShader);
 	TestSprite.ModelTransform.SetScaling(100, 100, 1);
 
@@ -179,6 +184,11 @@ int main()
 		TestSprite.GetShader()->Bind();
 		TestSprite.GetShader()->SetUniformMat4f("Model",TestSprite.ModelTransform.GetModelMatrix().GetContinousData());
 		TestSprite.Draw();
+
+		TrivialShader->Bind();
+		TrivialSprite.ModelTransform.SetScaling(0.5, 0.5, 0.5);
+		TrivialShader->SetUniformMat4f("Model", TrivialSprite.ModelTransform.GetModelMatrix().GetContinousData());
+		TrivialSprite.Draw();
 		//TestModel->Draw();
 		
 		//ChesireModel->Draw();

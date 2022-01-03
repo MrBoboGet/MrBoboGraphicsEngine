@@ -2359,12 +2359,81 @@ if (NewString.length != 0)
 		FinalValue.GetValue("LightSources").SetIndex(Position,NewUniformValue);
 		FinalValue.UpdateUniforms(ValuesToUpdate);
 	}
-	//Texture
+	//BEGIN Texture
 	Texture::Texture(std::string const& FilePath, uint64_t Options)
 	{
-		p_LoadWithOptions(FilePath, Options);
+		uint64_t GLType = -1;
+		int Width = -1;
+		int Height = -1;
+		uint8_t* FileData = p_LoadFileData(FilePath, &GLType, &Width, &Height);
+		p_LoadWithOptions(FileData, Width, Height, GLType, Options);
+		stbi_image_free(FileData);
 	}
-	void Texture::p_LoadWithOptions(std::string const& FilePath,uint64_t Options)
+	Texture::Texture(void* Data,int Width,int Height, TextureType DataType, uint64_t Options)
+	{
+		uint64_t GLType = -1;
+		if (DataType == TextureType::RGB8)
+		{
+			GLType = GL_RGB;
+		}
+		else if (DataType == TextureType::RED)
+		{
+			GLType = GL_RED;
+		}
+		else if (DataType == TextureType::RGBA8)
+		{
+			GLType = GL_RGBA;
+		}
+		p_LoadWithOptions(Data, Width, Height, GLType, Options);
+	}
+	uint64_t Texture::p_TextureTypeToGLType(TextureType TypeToConvert)
+	{
+		uint64_t GLType = -1;
+		if (TypeToConvert == TextureType::RGB8)
+		{
+			GLType = GL_RGB;
+		}
+		else if (TypeToConvert == TextureType::RED)
+		{
+			GLType = GL_RED;
+		}
+		else if (TypeToConvert == TextureType::RGBA8)
+		{
+			GLType = GL_RGBA;
+		}
+		if (GLType == -1)
+		{
+			throw  std::exception();
+		}
+		return(GLType);
+	}
+	uint8_t* Texture::p_LoadFileData(std::string const& FilePath, uint64_t* OutGLType, int* OutWidth, int* OutHeight)
+	{
+		stbi_set_flip_vertically_on_load(true);
+		unsigned int ChannelType = GL_RGBA;
+		int width, height, nrChannels;
+		unsigned char* data = stbi_load(FilePath.c_str(), &width, &height, &nrChannels, 0);
+		if (nrChannels < 4)
+		{
+			ChannelType = GL_RGB;
+		}
+		if (nrChannels == 1)
+		{
+			ChannelType = GL_RED;
+		}
+		*OutGLType = ChannelType;
+		*OutWidth = width;
+		*OutHeight = height;
+		//stbi_image_free(data);
+		if (!data)
+		{
+			std::cout << "Failed to load texture with path: " << FilePath << "\n";
+		}
+		//stbi_
+		//std::string ReturnValue = std::string(data,)
+		return((uint8_t*)data);
+	}
+	void Texture::p_LoadWithOptions(void* Data,int width,int height,uint64_t GL_Type,uint64_t Options)
 	{
 		stbi_set_flip_vertically_on_load(true);
 		uint64_t FilterType = GL_LINEAR;
@@ -2372,8 +2441,8 @@ if (NewString.length != 0)
 		{
 			FilterType = GL_NEAREST;
 		}
-		int width, height, nrChannels;
-		unsigned char* data = stbi_load(FilePath.c_str(), &width, &height, &nrChannels, 0);
+		//int width, height, nrChannels;
+		//unsigned char* data = stbi_load(FilePath.c_str(), &width, &height, &nrChannels, 0);
 		m_PixelWidth = width;
 		m_PixelHeight = height;
 		glGenTextures(1, &TextureHandle);
@@ -2384,31 +2453,43 @@ if (NewString.length != 0)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, FilterType);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, FilterType);
-		unsigned int ChannelType = GL_RGBA;
-		if (nrChannels < 4)
-		{
-			ChannelType = GL_RGB;
-		}
-		if (nrChannels == 1)
-		{
-			ChannelType = GL_RED;
-		}
+		//unsigned int ChannelType = GL_RGBA;
+		//if (nrChannels < 4)
+		//{
+		//	ChannelType = GL_RGB;
+		//}
+		//if (nrChannels == 1)
+		//{
+		//	ChannelType = GL_RED;
+		//}
 		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		if (data)
+		if (Data)
 		{
-			glTexImage2D(GL_TEXTURE_2D, 0, ChannelType, width, height, 0, ChannelType, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_Type, width, height, 0, GL_Type, GL_UNSIGNED_BYTE, Data);
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 		else
 		{
-			std::cout << "Failed to load texture " << FilePath << std::endl;
+			//std::cout << "Failed to load texture " << FilePath << std::endl;
 		}
-		stbi_image_free(data);
+		//stbi_image_free(data);
+		glCheckError();
+	}
+	void Texture::FillTexture(void* Data, int Width, int Height, TextureType PixelFormat, uint64_t Options)
+	{
+		uint64_t GLDataType = p_TextureTypeToGLType(PixelFormat);
+		glTexImage2D(GL_TEXTURE_2D, 0, GLDataType, Width, Height, 0, GLDataType, GL_UNSIGNED_BYTE, Data);
+		glGenerateMipmap(GL_TEXTURE_2D);
 		glCheckError();
 	}
 	Texture::Texture(std::string FilePath)
 	{
-		p_LoadWithOptions(FilePath, (uint64_t)TextureOptions::LinearFilter);
+		uint64_t GLType = -1;
+		int Width = -1;
+		int Height = -1;
+		uint8_t* FileData = p_LoadFileData(FilePath, &GLType, &Width, &Height);
+		p_LoadWithOptions(FileData,Width,Height, GLType, (uint64_t)TextureOptions::LinearFilter);
+		stbi_image_free(FileData);
 	}
 	void Texture::Bind(int TextureLocation)
 	{
@@ -2427,6 +2508,8 @@ if (NewString.length != 0)
 		glDeleteTextures(1, &TextureHandle);
 		glCheckError();
 	}
+	//END Texture
+
 	//Node
 	void Node::Swap(Node& OtherNode)
 	{
@@ -2754,6 +2837,27 @@ if (NewString.length != 0)
 		std::lock_guard<std::mutex> Lock(m_InputMutex);
 		return(m_KeyboardInputs[(size_t)KeyToCheck] == KeyInputType::Released);
 	}
+	void MBGraphicsEngine::p_LoadDefaultShaders()
+	{
+		const char* TrivialShaderFrag =
+#include <Resources/DefaultShaders/TrivialTextureShader.frag>
+			;
+		const char* TrivialShaderVert =
+#include <Resources/DefaultShaders/TrivialTextureShader.vert>
+			;
+		LoadedShaders["TrivialTextureShader"] = std::shared_ptr<ShaderProgram>(
+			new ShaderProgram(VertexShader(TrivialShaderVert, strlen(TrivialShaderVert)), FragmentShader(TrivialShaderFrag, strlen(TrivialShaderFrag))));
+
+		const char* CameraShaderFrag =
+#include <Resources/DefaultShaders/CameraTextureShader.frag>
+			;
+		const char* CameraShaderVert =
+#include <Resources/DefaultShaders/CameraTextureShader.vert>
+			;
+		LoadedShaders["CameraTextureShader"] = std::shared_ptr<ShaderProgram>(
+			new ShaderProgram(VertexShader(CameraShaderVert, strlen(CameraShaderVert)), FragmentShader(CameraShaderFrag, strlen(CameraShaderFrag))));
+
+	}
 	void MBGraphicsEngine::WindowCreate(size_t Width, size_t Height, std::string const& MonitorName, bool FullScreen)
 	{
 		//test för att se att vi kan starta ett window
@@ -2822,6 +2926,7 @@ if (NewString.length != 0)
 		DefaultShader->Bind();
 		DefaultShader->SetUniform1i("RenderedImage", 0);
 		m_PBS_Shaders.push_back(DefaultShader);
+		p_LoadDefaultShaders();
 	}
 	void MBGraphicsEngine::GetWindowSize(int* Width, int* Height)
 	{

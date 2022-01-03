@@ -8,6 +8,7 @@
 #include <map>
 #include <mutex>
 #include <cinttypes>
+#include <stdint.h>
 #define MBGE_BASE_TYPE double 
 #define MBGE_BONEPERVERTEX 5
 class GLFWwindow;
@@ -896,6 +897,10 @@ namespace MBGE
 		{
 			return(m_SpriteShader);
 		}
+		std::shared_ptr<Texture> GetTexture()
+		{
+			return(m_SpriteTexture);
+		}
 		void Draw();
 	};
 	class FrameBuffer
@@ -971,16 +976,27 @@ namespace MBGE
 		NoFilter = 1,
 		LinearFilter = 2,
 	};
+	enum class TextureType
+	{
+		RED,
+		RGBA8,
+		RGB8,
+	};
 	class Texture
 	{
 	private:
 		unsigned int TextureHandle = 0;
 		int m_PixelWidth = 0;
 		int m_PixelHeight = 0;
-		void p_LoadWithOptions(std::string const& FilePath,uint64_t Options);
+		uint8_t* p_LoadFileData(std::string const& FilePath,uint64_t* OutGLType,int* OutWidth,int* OutHeight);
+		void p_LoadWithOptions(void* Data,int Width,int Height,uint64_t GL_TextureType,uint64_t Options);
+
+		uint64_t p_TextureTypeToGLType(TextureType);
 	public:
 		Texture(std::string FilePath);
 		Texture(std::string const& FilePath,uint64_t Options);
+		Texture(void* Data,int Width,int Height, TextureType DataType, uint64_t Options);
+		void FillTexture(void* Data, int Width, int Height, TextureType PixelFormat,uint64_t Options);
 		void Bind(int TextureLocation);
 		void UnBind(int TextureLocation);
 		int GetWidth()
@@ -1038,6 +1054,7 @@ namespace MBGE
 
 		void p_ResetInput();
 
+		void p_LoadDefaultShaders();
 
 		//Underliggande implementation specifika funktioner
 		static void GFLW_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);

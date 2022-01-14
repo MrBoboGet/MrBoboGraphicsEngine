@@ -94,7 +94,7 @@ macro(MBPM_SetTargetIncludeDirectories Target)
 	target_include_directories(${Target} PUBLIC 
 	"${CMAKE_CURRENT_SOURCE_DIR}/"
 	"$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/"
-	"$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/MBUtility/"
+	#"$ENV{MBPM_PACKETS_INSTALL_DIRECTORY}/MBUtility/"
 	)
 endmacro()
 
